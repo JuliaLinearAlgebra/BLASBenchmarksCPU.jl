@@ -34,7 +34,7 @@ function plot(
             width = width, height = height
         )
     end
-    l, u = extrema(df.Sizes)
+    l, u = extrema(df.Size)
     if logscale
         desc *= "_logscale"
     end
