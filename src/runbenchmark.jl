@@ -31,6 +31,14 @@ function benchmark_fun!(
     end
     tmin
 end
+_mat_size(M, N, ::typeof(adjoint)) = (N, M)
+_mat_size(M, N, ::typeof(transpose)) = (N, M)
+_mat_size(M, N, ::typeof(identity)) = (M, N)
+function alloc_mat(_M, _N, memory::Vector{T}, off, f = identity) where {T}
+    M, N = _mat_size(_M, _N, f)
+    A = f(reshape(view(memory, off+1:off+M*N), (M, N)))
+    A, off + align(M*N, T)
+end
 
 matmul_sizes(s::Integer) = (s,s,s)
 matmul_sizes(mkn::Tuple{Vararg{Integer,3}}) = mkn
@@ -50,14 +58,22 @@ function runbench(
     sleep_time = 0.0
 ) where {T}
     if threaded
-        mkl_set_num_threads(VectorizationBase.NUM_CORES)
-        openblas_set_num_threads(VectorizationBase.NUM_CORES)
+        mkl_set_num_threads(NUM_CORES)
+        openblas_set_num_threads(NUM_CORES)
     else
         mkl_set_num_threads(1)
         openblas_set_num_threads(1)
     end
 
     funcs = getfuncs(libs, threaded)
+
+    # Hack to workaround https://github.com/JuliaCI/BenchmarkTools.jl/issues/127
+    # Use the same memory every time, to reduce accumulation
+    max_matrix_sizes = maximum(sizes) do s
+        M, K, N
+        align(M * K, T) + align(K * N, T) + align(M * N, T) * 2
+    end
+    memory = Vector{T}(undef, max_matrix_sizes)    
 
     library = reduce(vcat, (libs for _ ∈ eachindex(sizes)))
     Nres = length(libs) * length(sizes)
@@ -66,15 +82,17 @@ function runbench(
     k = 0
 
     force_belapsed = true # force when compiling
-
+    
     p = Progress(length(sizes))
     last_perfs = Vector{Tuple{Symbol,Union{Float64,NTuple{3,Int}}}}(undef, length(libs)+1)
     for (j,s) ∈ enumerate(sizes)
         M, K, N = matmul_sizes(s)
-        A = A_transform(rand(T, M, K))
-        B = B_transform(rand(T, K, N))
-        C0 = Matrix{T}(undef, M, N)
-        C1 = Matrix{T}(undef, M, N)
+        A,  off = alloc_mat(M, K, memory,   0, A_transform)
+        B,  off = alloc_mat(K, N, memory, off, B_transform)
+        C0, off = alloc_mat(M, N, memory, off)
+        C1, off = alloc_mat(M, N, memory, off)
+        PaddedMatrices.rand!(PaddedMatrices.local_rng(), A)
+        PaddedMatrices.rand!(PaddedMatrices.local_rng(), B)
         last_perfs[1] = (:Size, (M,K,N) .% Int)
         for i ∈ eachindex(funcs)
             C, ref = i == 1 ? (C0, nothing) : (fill!(C1,junk(T)), C0)

@@ -7,6 +7,7 @@ using PaddedMatrices, Octavian, Gaius, Tullio
 
 # utils: LoopVectorization for Tullio.jl, VectorizationBase for info
 using LoopVectorization, VectorizationBase
+using VectorizationBase: NUM_CORES, align
 
 # Adjoint
 using LinearAlgebra
