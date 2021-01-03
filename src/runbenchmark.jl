@@ -121,12 +121,12 @@ function runbench(
     sizevec = collect(sizes)
     # Hack to workaround https://github.com/JuliaCI/BenchmarkTools.jl/issues/127
     # Use the same memory every time, to reduce accumulation
-    max_matrix_sizes = maximum(sizes) do s
+    max_matrix_sizes = maximum(sizevec) do s
         M, K, N = matmul_sizes(s)
         align(M * K, T) + align(K * N, T) + align(M * N, T) * 2
     end
     memory = Vector{T}(undef, max_matrix_sizes)
-    library = reduce(vcat, (libs for _ ∈ eachindex(sizes)))
+    library = reduce(vcat, (libs for _ ∈ eachindex(sizevec)))
     Nres = length(libs) * length(sizes)
     times = Vector{Float64}(undef, Nres)
     gflop = Vector{Float64}(undef, Nres)
@@ -136,7 +136,7 @@ function runbench(
     
     p = Progress(length(sizes))
     last_perfs = Vector{Tuple{Symbol,Union{Float64,NTuple{3,Int}}}}(undef, length(libs)+1)
-    for (j,s) ∈ enumerate(sizes)
+    for (j,s) ∈ enumerate(sizevec)
         M, K, N = matmul_sizes(s)
         A,  off = alloc_mat(M, K, memory,   0, A_transform)
         B,  off = alloc_mat(K, N, memory, off, B_transform)
@@ -158,7 +158,7 @@ function runbench(
         ProgressMeter.next!(p; showvalues = last_perfs)
         force_belapsed = false
     end
-    _sizes = kron(sizes, trues(length(libs)))
+    _sizes = kron(sizevec, trues(length(libs)))
     BenchmarkResult{T}(
         DataFrame(Size = _sizes, Library = library, GFLOPS = gflop, Time = times),
         threaded
