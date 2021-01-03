@@ -6,7 +6,6 @@ istransposed(x::Transpose) = 'T'
 
 untransposed(A) = A
 untransposed(A::Adjoint) = adjoint(A)
-untransposed(A::Adjoint) = adjoint(A)
 untransposed(A::Transpose) = transpose(A)
 
 _transpose(A) = A'

@@ -45,13 +45,65 @@ matmul_sizes(mkn::Tuple{Vararg{Integer,3}}) = mkn
 
 junk(::Type{T}) where {T <: Integer} = typemax(T) >> 1
 junk(::Type{T}) where {T} = T(NaN)
-function logspace(start, stop, length)
-    round.(Int, exp.(range(log(start), log(stop), length=length)))
+
+struct LogSpace
+    r::StepRangeLen{Float64, Base.TwicePrecision{Float64}, Base.TwicePrecision{Float64}}
 end
+Base.IteratorSize(::Type{LogSpace}) = Base.HasShape{1}()
+"""
+  logspace(start, stop, length)
+
+Defines a monotonically increasing range, log spaced when possible. Useful for defining a range of sizes for benchmarks.
+
+```julia
+julia> collect(logspace(1,100,3))
+3-element Vector{Int64}:
+   1
+  10
+ 100
+
+julia> collect(logspace(1,10,3))
+3-element Vector{Int64}:
+  1
+  3
+ 10
+
+julia> collect(logspace(1,5,3))
+3-element Vector{Int64}:
+ 1
+ 2
+ 5
+
+julia> collect(logspace(1,3,3))
+3-element Vector{Int64}:
+ 1
+ 2
+ 3
+```
+"""
+logspace(start, stop, length) = LogSpace(range(log(start),log(stop), length = length))
+function Base.iterate(ls::LogSpace)
+    i_s = iterate(ls.r)
+    i_s === nothing && return nothing
+    i, _s = i_s
+    v = round(Int, exp(i))
+    v, (_s, v)
+end
+function Base.iterate(ls::LogSpace, (s,l))
+    i_s = iterate(ls.r, s)
+    i_s === nothing && return nothing
+    i, _s = i_s
+    v = max(round(Int, exp(i)), l+1)
+    v, (_s, v)
+end
+Base.length(ls::LogSpace) = length(ls.r)
+Base.size(ls::LogSpace) = (length(ls.r),)
+Base.axes(ls::LogSpace) = axes(ls.r)
+Base.eltype(::LogSpace) = Int
 function runbench(
     ::Type{T} = Float64;
     libs = [:MKL, :OpenBLAS, :PaddedMatrices, :Tullio, :Octavian, :Gaius],
-    sizes = vcat(2:255, logspace(256, 4000, 200)),
+    sizes = logspace(2, 4000, 200),
     threaded::Bool = Threads.nthreads() > 1,
     A_transform = identity,
     B_transform = identity,
@@ -66,7 +118,7 @@ function runbench(
     end
 
     funcs = getfuncs(libs, threaded)
-
+    sizevec = collect(sizes)
     # Hack to workaround https://github.com/JuliaCI/BenchmarkTools.jl/issues/127
     # Use the same memory every time, to reduce accumulation
     max_matrix_sizes = maximum(sizes) do s
