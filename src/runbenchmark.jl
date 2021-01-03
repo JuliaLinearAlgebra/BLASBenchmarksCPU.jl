@@ -13,8 +13,8 @@ function maybe_sleep(x)
 end
 
 function benchmark_fun!(
-    f!, C, A, B, sleep_time, force_belapsed = false, reference = nothing
-)
+    f!::F, C, A, B, sleep_time, force_belapsed = false, reference = nothing
+) where {F}
     maybe_sleep(sleep_time)
     tmin = @elapsed f!(C, A, B)
     isnothing(reference) || @assert C ≈ reference
@@ -36,7 +36,7 @@ _mat_size(M, N, ::typeof(transpose)) = (N, M)
 _mat_size(M, N, ::typeof(identity)) = (M, N)
 function alloc_mat(_M, _N, memory::Vector{T}, off, f = identity) where {T}
     M, N = _mat_size(_M, _N, f)
-    A = f(reshape(view(memory, off+1:off+M*N), (M, N)))
+    A = f(reshape(view(memory, (off+1):(off+M*N)), (M, N)))
     A, off + align(M*N, T)
 end
 
@@ -70,11 +70,10 @@ function runbench(
     # Hack to workaround https://github.com/JuliaCI/BenchmarkTools.jl/issues/127
     # Use the same memory every time, to reduce accumulation
     max_matrix_sizes = maximum(sizes) do s
-        M, K, N
+        M, K, N = matmul_sizes(s)
         align(M * K, T) + align(K * N, T) + align(M * N, T) * 2
     end
-    memory = Vector{T}(undef, max_matrix_sizes)    
-
+    memory = Vector{T}(undef, max_matrix_sizes)
     library = reduce(vcat, (libs for _ ∈ eachindex(sizes)))
     Nres = length(libs) * length(sizes)
     times = Vector{Float64}(undef, Nres)
