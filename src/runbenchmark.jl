@@ -21,7 +21,7 @@ function benchmark_fun!(
     if force_belapsed || 2tmin < BenchmarkTools.DEFAULT_PARAMETERS.seconds
         maybe_sleep(sleep_time)
         tmin = min(tmin, @belapsed $f!($C, $A, $B))
-    elseif tmin < BenchmarkTools.DEFAULT_PARAMETERS.seconds
+    else#if tmin < BenchmarkTools.DEFAULT_PARAMETERS.seconds
         maybe_sleep(sleep_time)
         tmin = min(tmin, @elapsed f!(C, A, B))
         if tmin < 2BenchmarkTools.DEFAULT_PARAMETERS.seconds
@@ -102,7 +102,7 @@ Base.axes(ls::LogSpace) = axes(ls.r)
 Base.eltype(::LogSpace) = Int
 function runbench(
     ::Type{T} = Float64;
-    libs = [:MKL, :OpenBLAS, :PaddedMatrices, :Tullio, :Octavian, :Gaius],
+    libs = [:MKL, :OpenBLAS, :StrideArrays, :Tullio, #=:Octavian,=# :Gaius],
     sizes = logspace(2, 4000, 200),
     threaded::Bool = Threads.nthreads() > 1,
     A_transform = identity,
@@ -142,8 +142,8 @@ function runbench(
         B,  off = alloc_mat(K, N, memory, off, B_transform)
         C0, off = alloc_mat(M, N, memory, off)
         C1, off = alloc_mat(M, N, memory, off)
-        PaddedMatrices.rand!(PaddedMatrices.local_rng(), A)
-        PaddedMatrices.rand!(PaddedMatrices.local_rng(), B)
+        StrideArrays.rand!(StrideArrays.local_rng(), A)
+        StrideArrays.rand!(StrideArrays.local_rng(), B)
         last_perfs[1] = (:Size, (M,K,N) .% Int)
         for i ∈ eachindex(funcs)
             C, ref = i == 1 ? (C0, nothing) : (fill!(C1,junk(T)), C0)

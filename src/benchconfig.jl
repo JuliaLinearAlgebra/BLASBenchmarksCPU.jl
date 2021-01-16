@@ -14,7 +14,7 @@ function getfuncs(libs::Vector{Symbol}, threaded::Bool)::Vector{Function}
             gemmmkl!
         elseif i === :OpenBLAS
             gemmopenblas!
-        elseif i === :PaddedMatrices
+        elseif i === :StrideArrays
             threaded ? matmul! : matmul_serial!
         elseif i === :Tullio
             threaded ? tmul_threads! : tmul_no_threads!
