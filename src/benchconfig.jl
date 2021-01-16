@@ -14,6 +14,8 @@ function getfuncs(libs::Vector{Symbol}, threaded::Bool)::Vector{Function}
             gemmmkl!
         elseif i === :OpenBLAS
             gemmopenblas!
+        elseif i === :BLIS || i === :blis
+            gemmblis!
         elseif i === :StrideArrays
             threaded ? matmul! : matmul_serial!
         elseif i === :Tullio

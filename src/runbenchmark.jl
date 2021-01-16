@@ -102,7 +102,7 @@ Base.axes(ls::LogSpace) = axes(ls.r)
 Base.eltype(::LogSpace) = Int
 function runbench(
     ::Type{T} = Float64;
-    libs = [:MKL, :OpenBLAS, :StrideArrays, :Tullio, #=:Octavian,=# :Gaius],
+    libs = [:MKL, :OpenBLAS, :BLIS, :StrideArrays, :Tullio, #=:Octavian,=# :Gaius],
     sizes = logspace(2, 4000, 200),
     threaded::Bool = Threads.nthreads() > 1,
     A_transform = identity,
