@@ -23,7 +23,7 @@ function getfuncs(libs::Vector{Symbol}, threaded::Bool)::Vector{Function}
         elseif i === :Octavian
             Octavian.matmul!
         elseif i === :Gaius
-            blocked_mul!
+            Gaius.mul!
         else
             throw("Library $i not reognized.")
         end

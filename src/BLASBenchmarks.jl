@@ -3,7 +3,8 @@ module BLASBenchmarks
 # BLAS libs (& Libdl)
 using MKL_jll, OpenBLAS_jll, blis_jll#, Libdl
 # Julia BLAS
-using StrideArrays, Octavian, Gaius, Tullio
+using StrideArrays, Tullio
+import Octavian, Gaius
 
 # utils: LoopVectorization for Tullio.jl, VectorizationBase for info
 using LoopVectorization, VectorizationBase

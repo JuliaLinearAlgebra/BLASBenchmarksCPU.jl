@@ -112,9 +112,11 @@ function runbench(
     if threaded
         mkl_set_num_threads(NUM_CORES)
         openblas_set_num_threads(NUM_CORES)
+        blis_set_num_threads(NUM_CORES)
     else
         mkl_set_num_threads(1)
         openblas_set_num_threads(1)
+        blis_set_num_threads(1)
     end
 
     funcs = getfuncs(libs, threaded)
