@@ -85,8 +85,11 @@ function _plot(
         )
     end
     mkpath(plot_directory)
+    _filenames = String[]
     for ext in file_extensions
-        save(joinpath(plot_directory, "$(plot_filename).$(ext)"), plt)
+        _filename = joinpath(plot_directory, "$(plot_filename).$(ext)")
+        save(_filename, plt)
+        push!(_filenames, _filename)
     end
-    return foo1, foo2
+    return _filenames
 end
