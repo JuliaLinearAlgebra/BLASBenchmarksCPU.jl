@@ -1,4 +1,4 @@
-name: CI 
+name: CI (Julia nightly)
 on:
   pull_request:
     branches:
@@ -9,7 +9,7 @@ on:
     tags: '*'
   workflow_dispatch:
 jobs:
-  test:
+  test-julia-nightly:
     name: ${{ matrix.version }}/${{ matrix.os }}${{ matrix.arch }}/t=${{ matrix.threads }}/${{ github.event_name }}
     runs-on: ${{ matrix.os }}
     strategy:
@@ -18,7 +18,7 @@ jobs:
         arch:
           - x64
         version:
-          - '1'
+          - 'nightly'
         os:
           - ubuntu-latest
         threads:
@@ -49,28 +49,3 @@ jobs:
           coverage: false
         env:
           JULIA_NUM_THREADS: ${{ matrix.threads }}
-  docs:
-    name: Documentation
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: julia-actions/setup-julia@v1
-        with:
-          version: '1'
-      # TODO: fix the following lines once StrideArrays is registered
-      - run: |
-          julia --project=docs -e '
-            using Pkg
-            pkgs = [PackageSpec(path = pwd()), PackageSpec(url = "https://github.com/chriselrod/StrideArrays.jl")]
-            Pkg.develop(pkgs)
-            Pkg.instantiate()'
-        shell: bash
-      - run: |
-          julia --project=docs -e '
-            using Documenter: doctest
-            using BLASBenchmarks
-            doctest(BLASBenchmarks)'
-      - run: julia --project=docs docs/make.jl
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          DOCUMENTER_KEY: ${{ secrets.DOCUMENTER_KEY }}
