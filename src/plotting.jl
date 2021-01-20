@@ -34,6 +34,7 @@ end
 function default_plot_filename(br::BenchmarkResult{T};
                                desc::AbstractString,
                                logscale::Bool) where {T}
+    df = br.df
     l, u = extrema(df.Size)
     if logscale
         desc *= "_logscale"
