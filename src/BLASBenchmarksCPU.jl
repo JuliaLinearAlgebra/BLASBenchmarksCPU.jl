@@ -20,11 +20,27 @@ using BenchmarkTools, ProgressMeter
 # Plotting & presenting results
 using VegaLite, DataFrames
 
+export benchmark_result_type
+export benchmark_result_df
+export benchmark_result_threaded
+export logspace
+export plot
+export runbench
 
-export runbench, logspace, plot, matmul!,
-    gemmmkl!, mkl_set_num_threads,
-    gemmopenblas!, openblas_set_num_threads,
-    gemmblis!, blis_set_num_threads
+# BLIS
+export gemmblis!
+export blis_set_num_threads
+
+# Octavian.jl
+export matmul!
+
+# OpenBLAS
+export gemmopenblas!
+export openblas_set_num_threads
+
+# MKL
+export gemmmkl!
+export mkl_set_num_threads
 
 # set threads
 const libMKL = MKL_jll.libmkl_rt # more convenient name
