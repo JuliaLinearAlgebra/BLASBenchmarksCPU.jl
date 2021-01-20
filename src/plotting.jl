@@ -15,7 +15,7 @@ function pick_suffix(desc = "")
     "$(Sys.CPU_NAME)_$suffix"
 end
 
-@inline function _pkgdir()
+function _pkgdir()
     return dirname(dirname(@__FILE__))
 end
 
