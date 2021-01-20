@@ -1,3 +1,4 @@
 [deps]
 BLASBenchmarks = "5fdc822c-4560-4d20-af7e-e5ee461714d5"
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
+StrideArrays = "d1fa6d79-ef01-42a6-86c9-f7c551f8593b"

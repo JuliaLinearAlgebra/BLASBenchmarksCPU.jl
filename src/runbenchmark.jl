@@ -100,9 +100,12 @@ Base.length(ls::LogSpace) = length(ls.r)
 Base.size(ls::LogSpace) = (length(ls.r),)
 Base.axes(ls::LogSpace) = axes(ls.r)
 Base.eltype(::LogSpace) = Int
+
+"""
+"""
 function runbench(
     ::Type{T} = Float64;
-    libs = [:MKL, :OpenBLAS, :BLIS, :Octavian, :Tullio, :Gaius],
+    libs = [:BLIS, :Gaius, :MKL, :Octavian, :OpenBLAS, :Tullio],
     sizes = logspace(2, 4000, 200),
     threaded::Bool = Threads.nthreads() > 1,
     A_transform = identity,
@@ -134,7 +137,7 @@ function runbench(
     k = 0
 
     force_belapsed = true # force when compiling
-    
+
     p = Progress(length(sizes))
     last_perfs = Vector{Tuple{Symbol,Union{Float64,NTuple{3,Int}}}}(undef, length(libs)+1)
     for (j,s) ∈ enumerate(sizevec)
@@ -164,5 +167,3 @@ function runbench(
         threaded
     )
 end
-
-
