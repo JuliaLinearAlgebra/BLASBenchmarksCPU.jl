@@ -70,7 +70,10 @@ jobs:
             using Documenter: doctest
             using BLASBenchmarks
             doctest(BLASBenchmarks)'
+        env:
+          JULIA_NUM_THREADS: 2
       - run: julia --project=docs docs/make.jl
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DOCUMENTER_KEY: ${{ secrets.DOCUMENTER_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          JULIA_NUM_THREADS: 2

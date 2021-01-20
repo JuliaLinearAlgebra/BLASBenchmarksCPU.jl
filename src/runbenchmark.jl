@@ -102,10 +102,48 @@ Base.axes(ls::LogSpace) = axes(ls.r)
 Base.eltype(::LogSpace) = Int
 
 """
+    all_libs()
+"""
+function all_libs()
+    libs = Symbol[
+        :BLIS,
+        :Gaius,
+        :MKL,
+        :Octavian,
+        :OpenBLAS,
+        :Tullio,
+    ]
+    return libs
+end
+
+function _integer_libs()
+    libs_to_exclude = Symbol[:BLIS, :MKL, :OpenBLAS]
+    return sort(unique(setdiff(all_libs(), libs_to_exclude)))
+end
+
+"""
+    default_libs(T)
+"""
+function default_libs(::Type{T}) where {T}
+    if T <: Integer
+        return _integer_libs()
+    else
+        return all_libs()
+    end
+end
+
+"""
+    runbench(T = Float64;
+             libs = default_libs(T),
+             sizes = logspace(2, 4000, 200),
+             threaded::Bool = Threads.nthreads() > 1,
+             A_transform = identity,
+             B_transform = identity,
+             sleep_time = 0.0)
 """
 function runbench(
     ::Type{T} = Float64;
-    libs = [:BLIS, :Gaius, :MKL, :Octavian, :OpenBLAS, :Tullio],
+    libs = default_libs(T),
     sizes = logspace(2, 4000, 200),
     threaded::Bool = Threads.nthreads() > 1,
     A_transform = identity,

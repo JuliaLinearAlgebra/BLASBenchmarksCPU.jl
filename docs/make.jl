@@ -14,6 +14,7 @@ makedocs(;
     pages=[
         "Home" => "index.md",
         "Usage" => "usage.md",
+        "Memory Required for Large Matrices" => "memory-required.md",
         "Public API" => "public-api.md",
         "Internals (Private)" => "internals.md",
     ],

@@ -27,12 +27,31 @@ function default_plot_directory()
 end
 
 """
+    default_plot_filename(br::BenchmarkResult;
+                          desc,
+                          logscale)
+"""
+function default_plot_filename(br::BenchmarkResult{T};
+                               desc::AbstractString,
+                               logscale::Bool) where {T}
+    l, u = extrema(df.Size)
+    if logscale
+        desc *= "_logscale"
+    end
+    desc = (br.threaded ? "_multithreaded" : "_singlethreaded") * desc
+    suffix = pick_suffix(desc)
+    return "gemm_$(string(T))_$(l)_$(u)_$(suffix)"
+end
+
+"""
     plot(br::BenchmarkResult;
          desc = "",
          logscale = true,
          width = 1200,
          height = 600,
-         plot_directory = default_plot_directory())
+         plot_directory = default_plot_directory(),
+         plot_filename = default_plot_filename(br; desc = desc, logscale = logscale),
+         file_extensions = ["svg", "png"])
 """
 function plot(br::BenchmarkResult{T}; kwargs...) where {T}
     _plot(br; kwargs...)
@@ -47,6 +66,8 @@ function _plot(
     width::Real = 1200,
     height::Real = 600,
     plot_directory::AbstractString = default_plot_directory(),
+    plot_filename::AbstractString = default_plot_filename(br; desc = desc, logscale = logscale),
+    file_extensions = ["svg", "png"],
 ) where {T}
     df = br.df
     plt = if logscale
@@ -62,16 +83,9 @@ function _plot(
             width = width, height = height
         )
     end
-    l, u = extrema(df.Size)
-    if logscale
-        desc *= "_logscale"
-    end
-    desc = (br.threaded ? "_multithreaded" : "_singlethreaded") * desc
-    suffix = pick_suffix(desc)
     mkpath(plot_directory)
-    foo1 =
-    foo2 =
-    save(joinpath(plot_directory, "gemm_$(string(T))_$(l)_$(u)_$(suffix).svg"), plt)
-    save(joinpath(plot_directory, "gemm_$(string(T))_$(l)_$(u)_$(suffix).png"), plt)
+    for ext in file_extensions
+        save(joinpath(plot_directory, "$(plot_filename).$(ext)"), plt)
+    end
     return foo1, foo2
 end
