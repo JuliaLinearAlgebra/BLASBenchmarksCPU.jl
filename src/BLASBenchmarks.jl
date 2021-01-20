@@ -3,8 +3,7 @@ module BLASBenchmarks
 # BLAS libs (& Libdl)
 using MKL_jll, OpenBLAS_jll, blis_jll#, Libdl
 # Julia BLAS
-using StrideArrays, Tullio
-import Octavian, Gaius
+using Tullio, Octavian, Gaius
 
 # utils: LoopVectorization for Tullio.jl, VectorizationBase for info
 using LoopVectorization, VectorizationBase
@@ -43,7 +42,7 @@ function blis_get_num_threads(N::Integer)
     ccall((:bli_thread_get_num_threads,libBLIS), Int32, ())
 end
 
-          
+
 include("ccallblas.jl")
 include("benchconfig.jl")
 include("runbenchmark.jl")

@@ -102,7 +102,7 @@ Base.axes(ls::LogSpace) = axes(ls.r)
 Base.eltype(::LogSpace) = Int
 function runbench(
     ::Type{T} = Float64;
-    libs = [:MKL, :OpenBLAS, :BLIS, :StrideArrays, :Tullio, #=:Octavian,=# :Gaius],
+    libs = [:MKL, :OpenBLAS, :BLIS, :Octavian, :Tullio, :Gaius],
     sizes = logspace(2, 4000, 200),
     threaded::Bool = Threads.nthreads() > 1,
     A_transform = identity,
@@ -118,7 +118,6 @@ function runbench(
         openblas_set_num_threads(1)
         blis_set_num_threads(1)
     end
-
     funcs = getfuncs(libs, threaded)
     sizevec = collect(sizes)
     # Hack to workaround https://github.com/JuliaCI/BenchmarkTools.jl/issues/127
@@ -142,10 +141,9 @@ function runbench(
         M, K, N = matmul_sizes(s)
         A,  off = alloc_mat(M, K, memory,   0, A_transform)
         B,  off = alloc_mat(K, N, memory, off, B_transform)
+        rand!(A); rand!(B);
         C0, off = alloc_mat(M, N, memory, off)
         C1, off = alloc_mat(M, N, memory, off)
-        StrideArrays.rand!(StrideArrays.local_rng(), A)
-        StrideArrays.rand!(StrideArrays.local_rng(), B)
         last_perfs[1] = (:Size, (M,K,N) .% Int)
         for i ∈ eachindex(funcs)
             C, ref = i == 1 ? (C0, nothing) : (fill!(C1,junk(T)), C0)

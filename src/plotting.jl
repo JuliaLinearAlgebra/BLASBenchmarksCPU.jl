@@ -7,7 +7,7 @@ function pick_suffix(desc = "")
     elseif VectorizationBase.REGISTER_SIZE == 32
         "AVX"
     else
-        "REGSIZE$(StrideArrays.VectorizationBase.REGISTER_SIZE)"
+        "REGSIZE$(VectorizationBase.REGISTER_SIZE)"
     end
     if desc != ""
         suffix *= '_' * desc
