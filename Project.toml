@@ -20,7 +20,14 @@ VectorizationBase = "3d5dd08c-fd9d-11e8-17fa-ed2836048c2f"
 VegaLite = "112f6efa-9a02-5b7d-90c0-432ed331239a"
 blis_jll = "6136c539-28a5-5bf0-87cc-b183200dce32"
 
-[compat]
+[compat] 
+=======
+BenchmarkTools = "0.5"
+DataFrames = "0.22"
+LoopVectorization = "0.9"
+Octavian = "0.2"
+ProgressMeter = "1.4"
+Tullio = "0.2" 
 VectorizationBase = "0.15"
 julia = "1.5"
 
