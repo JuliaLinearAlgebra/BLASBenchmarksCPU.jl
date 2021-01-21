@@ -56,6 +56,11 @@ jobs:
           version: '1'
       - run: |
           julia --project=docs -e '
+            using Pkg
+            Pkg.instantiate()'
+        shell: bash
+      - run: |
+          julia --project=docs -e '
             using Documenter: doctest
             using BLASBenchmarks
             doctest(BLASBenchmarks)'
