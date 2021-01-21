@@ -1,5 +1,5 @@
 ```@meta
-CurrentModule = BLASBenchmarks
+CurrentModule = BLASBenchmarksCPU
 ```
 
 # Usage
@@ -12,19 +12,19 @@ Remember to start Julia with multiple threads with e.g. one of the following:
 ## Example 1
 
 ```julia
-julia> using BLASBenchmarks
+julia> using BLASBenchmarksCPU
 
 julia> benchmark_result = runbench(Float64)
 
 julia> plot_directory = "/foo/bar/baz/"
 
-julia> BLASBenchmarks.plot(benchmark_result; plot_directory)
+julia> BLASBenchmarksCPU.plot(benchmark_result; plot_directory)
 ```
 
 ## Example 2
 
 ```julia
-julia> using BLASBenchmarks
+julia> using BLASBenchmarksCPU
 
 julia> libs = [:Gaius, :Octavian, :OpenBLAS]
 
@@ -38,5 +38,5 @@ julia> benchmark_result = runbench(Float64; libs, sizes, threaded)
 
 julia> plot_directory = "/foo/bar/baz/"
 
-julia> BLASBenchmarks.plot(benchmark_result; plot_directory)
+julia> BLASBenchmarksCPU.plot(benchmark_result; plot_directory)
 ```

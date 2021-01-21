@@ -1,14 +1,14 @@
-using BLASBenchmarks
+using BLASBenchmarksCPU
 using Documenter
 
 makedocs(;
-    modules=[BLASBenchmarks],
+    modules=[BLASBenchmarksCPU],
     authors="Chris Elrod <elrodc@gmail.com> and contributors",
-    repo="https://github.com/chriselrod/BLASBenchmarks.jl/blob/{commit}{path}#L{line}",
-    sitename="BLASBenchmarks.jl",
+    repo="https://github.com/chriselrod/BLASBenchmarksCPU.jl/blob/{commit}{path}#L{line}",
+    sitename="BLASBenchmarksCPU.jl",
     format=Documenter.HTML(;
         prettyurls=get(ENV, "CI", "false") == "true",
-        canonical="https://chriselrod.github.io/BLASBenchmarks.jl",
+        canonical="https://chriselrod.github.io/BLASBenchmarksCPU.jl",
         assets=String[],
     ),
     pages=[
@@ -23,5 +23,5 @@ makedocs(;
 )
 
 deploydocs(;
-    repo="github.com/chriselrod/BLASBenchmarks.jl",
+    repo="github.com/chriselrod/BLASBenchmarksCPU.jl",
 )

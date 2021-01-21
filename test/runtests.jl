@@ -1,4 +1,4 @@
-using BLASBenchmarks
+using BLASBenchmarksCPU
 using Test
 
 import InteractiveUtils

@@ -1,5 +1,5 @@
 ```@meta
-CurrentModule = BLASBenchmarks
+CurrentModule = BLASBenchmarksCPU
 ```
 
 # Disabling CPU Turbo

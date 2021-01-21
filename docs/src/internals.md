@@ -1,5 +1,5 @@
 ```@meta
-CurrentModule = BLASBenchmarks
+CurrentModule = BLASBenchmarksCPU
 ```
 
 # Internals (Private)
@@ -9,7 +9,7 @@ Pages   = ["internals.md"]
 ```
 
 ```@autodocs
-Modules = [BLASBenchmarks]
+Modules = [BLASBenchmarksCPU]
 Private = true
 Public = false
 ```

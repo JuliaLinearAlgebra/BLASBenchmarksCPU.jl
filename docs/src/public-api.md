@@ -1,5 +1,5 @@
 ```@meta
-CurrentModule = BLASBenchmarks
+CurrentModule = BLASBenchmarksCPU
 ```
 
 # Public API
@@ -9,7 +9,7 @@ Pages   = ["public-api.md"]
 ```
 
 ```@autodocs
-Modules = [BLASBenchmarks]
+Modules = [BLASBenchmarksCPU]
 Public = true
 Private = false
 ```

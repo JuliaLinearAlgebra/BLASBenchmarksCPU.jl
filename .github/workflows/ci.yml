@@ -62,8 +62,8 @@ jobs:
       - run: |
           julia --project=docs -e '
             using Documenter: doctest
-            using BLASBenchmarks
-            doctest(BLASBenchmarks)'
+            using BLASBenchmarksCPU
+            doctest(BLASBenchmarksCPU)'
         env:
           JULIA_NUM_THREADS: 2
       - run: julia --project=docs docs/make.jl

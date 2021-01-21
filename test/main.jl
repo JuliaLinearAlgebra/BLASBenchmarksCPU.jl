@@ -11,9 +11,9 @@ for T in [Float64, Float32]
         sizes = sizes,
         threaded = threaded,
     )
-    @test benchmark_result isa BLASBenchmarks.BenchmarkResult
+    @test benchmark_result isa BLASBenchmarksCPU.BenchmarkResult
     plot_directory = mktempdir()
-    BLASBenchmarks.plot(
+    BLASBenchmarksCPU.plot(
         benchmark_result;
         plot_directory = plot_directory,
     )
