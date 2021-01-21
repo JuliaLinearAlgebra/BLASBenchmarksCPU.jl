@@ -40,9 +40,6 @@ jobs:
             ${{ runner.os }}-test-${{ env.cache-name }}-
             ${{ runner.os }}-test-
             ${{ runner.os }}-
-      # TODO: remove the following line once StrideArrays is registered
-      - run: julia --color=yes --project -e 'import Pkg; Pkg.develop(Pkg.PackageSpec(url = "https://github.com/chriselrod/StrideArrays.jl"))'
-        shell: bash
       - uses: julia-actions/julia-buildpkg@v1
       - uses: julia-actions/julia-runtest@v1
         with:
@@ -57,14 +54,6 @@ jobs:
       - uses: julia-actions/setup-julia@v1
         with:
           version: '1'
-      # TODO: fix the following lines once StrideArrays is registered
-      - run: |
-          julia --project=docs -e '
-            using Pkg
-            pkgs = [PackageSpec(path = pwd()), PackageSpec(url = "https://github.com/chriselrod/StrideArrays.jl")]
-            Pkg.develop(pkgs)
-            Pkg.instantiate()'
-        shell: bash
       - run: |
           julia --project=docs -e '
             using Documenter: doctest
