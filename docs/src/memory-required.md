@@ -141,7 +141,7 @@ These tables show how much memory is required for four matrices of the given siz
 ## Generating These Tables
 
 ```julia
-mem_req(s, T) = 4s^2*sizeof(T) / (1 << 30)
+mem_req(s, ::Type{T}) where {T} = 4s^2*sizeof(T) / (1 << 30)
 
 function print_table(::Type{T}, Ns = nothing) where {T}
     println("| Matrix Size | Memory |")
@@ -158,4 +158,11 @@ function print_table(::Type{T}, Ns = nothing) where {T}
     end
     return nothing
 end
+```
+
+```julia
+julia> print_table(Float64)
+julia> print_table(Float32)
+julia> print_table(Int64)
+julia> print_table(Int32)
 ```
