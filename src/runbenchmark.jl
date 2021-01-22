@@ -1,10 +1,31 @@
-
 struct BenchmarkResult{T}
     df::DataFrame
     threaded::Bool
 end
+
+"""
+    benchmark_result_type(benchmark_result::BenchmarkResult)
+"""
+function benchmark_result_type(::BenchmarkResult{T}) where {T}
+    return T
+end
+
+"""
+    benchmark_result_df(benchmark_result::BenchmarkResult)
+"""
+function benchmark_result_df(benchmark_result::BenchmarkResult)
+    return deepcopy(benchmark_result.df)
+end
+
+"""
+    benchmark_result_threaded(benchmark_result::BenchmarkResult)
+"""
+function benchmark_result_threaded(benchmark_result::BenchmarkResult)
+    return benchmark_result.threaded
+end
+
 function Base.show(io::IO, br::BenchmarkResult{T}) where {T}
-    println(io, "Bennchmark Result of Matrix{$T}, threads = $(br.threaded)")
+    println(io, "Bennchmark Result of Matrix{$T}, threaded = $(br.threaded)")
     println(io, br.df)
 end
 
