@@ -30,8 +30,6 @@ julia> libs = [:Gaius, :Octavian, :OpenBLAS]
 
 julia> sizes = [10, 20, 30]
 
-julia> sizes = [1_000]
-
 julia> threaded = true
 
 julia> benchmark_result = runbench(Float64; libs, sizes, threaded)
