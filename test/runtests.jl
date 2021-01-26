@@ -6,6 +6,6 @@ import VectorizationBase
 
 include("test-suite-preamble.jl")
 
-@info("VectorizationBase.NUM_CORES is $(VectorizationBase.NUM_CORES)")
+@info("VectorizationBase.num_cores() is $(VectorizationBase.num_cores())")
 
 include("main.jl")
