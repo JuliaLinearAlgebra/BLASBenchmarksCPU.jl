@@ -12,6 +12,7 @@ for T in [Float64, Float32]
         threaded = threaded,
     )
     @test benchmark_result isa BLASBenchmarksCPU.BenchmarkResult
+    @test benchmark_result_type(benchmark_result) === T
     plot_directory = mktempdir()
     BLASBenchmarksCPU.plot(
         benchmark_result;
