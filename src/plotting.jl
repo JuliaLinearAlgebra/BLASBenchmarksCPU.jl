@@ -13,6 +13,9 @@ for (alias,ref) ∈ [(:BLIS,:blis),(:generic,:Generic),(:GENERIC,:Generic)]
     COLOR_MAP[alias] = COLOR_MAP[ref]
 end
 
+const JULIA_LIBS = Set(["Octavian", "Tullio", "Gaius", "Generic", "GENERIC", "generic"])
+isjulialib(x) = x ∈ JULIA_LIBS
+
 
 ####################################################################################################
 ####################################### Plots ######################################################
@@ -98,9 +101,10 @@ function _plot(
         Guide.xlabel("Size"), Guide.ylabel("GFLOPS"), xscale
     )
     for i ∈ eachindex(libraries)
+        linestyle = isjulialib(libraries[i]) ? :solid : :dash
         l = layer(
             x = br.sizes, y = br.gflops[:,i],
-            Geom.line, Theme(default_color = colors[i])
+            Geom.line, Theme(default_color = colors[i], line_style = [linestyle])
         )
         push!(plt, l)
     end
