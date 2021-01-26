@@ -7,7 +7,11 @@ const LIBRARIES = [:Octavian, :MKL, :OpenBLAS, :blis, :Tullio, :Gaius, :Generic]
 """
 Defines the mapping between libraries and colors
 """# #0071c5 == Intel Blue
-const COLOR_MAP = Dict(zip(LIBRARIES, distinguishable_colors(length(LIBRARIES), [RGB(1,0,0), colorant"#0071c5"])));
+# make sure colors are distinguishable against white background by adding white to the seed list,
+# then deleting it from the resultant palette
+palette = distinguishable_colors(length(LIBRARIES) + 1, [colorant"white", colorant"#66023C", colorant"#0071c5"])
+deleteat!(palette, 1)
+const COLOR_MAP = Dict(zip(LIBRARIES, palette))
 getcolor(l::Symbol) = COLOR_MAP[l]
 for (alias,ref) ∈ [(:BLIS,:blis),(:generic,:Generic),(:GENERIC,:Generic)]
     COLOR_MAP[alias] = COLOR_MAP[ref]
