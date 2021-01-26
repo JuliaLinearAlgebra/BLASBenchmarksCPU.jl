@@ -7,7 +7,7 @@ using Tullio, Octavian, Gaius
 
 # utils: LoopVectorization for Tullio.jl, VectorizationBase for info
 using LoopVectorization, VectorizationBase
-using VectorizationBase: NUM_CORES, align
+using VectorizationBase: num_cores, align
 
 using Random
 
@@ -18,7 +18,8 @@ using LinearAlgebra
 using BenchmarkTools, ProgressMeter
 
 # Plotting & presenting results
-using VegaLite, DataFrames
+using Cairo
+using Fontconfig, Gadfly, Colors, DataFrames
 
 export benchmark_result_type
 export benchmark_result_df
@@ -67,9 +68,9 @@ include("runbenchmark.jl")
 include("plotting.jl")
 
 function __init__()
-    mkl_set_num_threads(NUM_CORES)
-    openblas_set_num_threads(NUM_CORES)
-    blis_set_num_threads(NUM_CORES)
+    mkl_set_num_threads(num_cores())
+    openblas_set_num_threads(num_cores())
+    blis_set_num_threads(num_cores())
 end
 
 end

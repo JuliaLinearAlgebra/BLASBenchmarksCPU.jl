@@ -1,13 +1,40 @@
 
+####################################################################################################
+####################################### Colors #####################################################
+####################################################################################################
+
+const LIBRARIES = [:Octavian, :MKL, :OpenBLAS, :blis, :Tullio, :Gaius, :Generic];
+"""
+Defines the mapping between libraries and colors
+"""# #0071c5 == Intel Blue
+# make sure colors are distinguishable against white background by adding white to the seed list,
+# then deleting it from the resultant palette
+palette = distinguishable_colors(length(LIBRARIES) + 2, [colorant"white", colorant"black", colorant"#66023C", colorant"#0071c5"])
+deleteat!(palette, 1); deleteat!(palette, 2)
+const COLOR_MAP = Dict(zip(LIBRARIES, palette))
+getcolor(l::Symbol) = COLOR_MAP[l]
+for (alias,ref) ∈ [(:BLIS,:blis),(:generic,:Generic),(:GENERIC,:Generic)]
+    COLOR_MAP[alias] = COLOR_MAP[ref]
+end
+
+const JULIA_LIBS = Set(["Octavian", "Tullio", "Gaius", "Generic", "GENERIC", "generic"])
+isjulialib(x) = x ∈ JULIA_LIBS
+
+
+####################################################################################################
+####################################### Plots ######################################################
+####################################################################################################
+
+
 function pick_suffix(desc = "")
-    suffix = if VectorizationBase.AVX512F
+    suffix = if VectorizationBase.has_feature("x86_64_avx512f")
         "AVX512"
-    elseif VectorizationBase.AVX2
+    elseif VectorizationBase.has_feature("x86_64_avx2")
         "AVX2"
-    elseif VectorizationBase.REGISTER_SIZE == 32
+    elseif VectorizationBase.has_feature("x86_64_avx")
         "AVX"
     else
-        "REGSIZE$(VectorizationBase.REGISTER_SIZE)"
+        "REGSIZE$(VectorizationBase.register_size())"
     end
     if desc != ""
         suffix *= '_' * desc
@@ -34,8 +61,7 @@ end
 function default_plot_filename(br::BenchmarkResult{T};
                                desc::AbstractString,
                                logscale::Bool) where {T}
-    df = br.df
-    l, u = extrema(df.Size)
+    l, u = extrema(br.sizes)
     if logscale
         desc *= "_logscale"
     end
@@ -54,41 +80,44 @@ end
          plot_filename = default_plot_filename(br; desc = desc, logscale = logscale),
          file_extensions = ["svg", "png"])
 """
-function plot(br::BenchmarkResult{T}; kwargs...) where {T}
+function Gadfly.plot(br::BenchmarkResult{T}; kwargs...) where {T}
     _plot(br; kwargs...)
     return nothing
 end
-
+roundint(x) = round(Int,x)
 # `_plot` is just like `plot`, except _plot returns the filenames
 function _plot(
     br::BenchmarkResult{T};
     desc::AbstractString = "",
     logscale::Bool = true,
-    width::Real = 1200,
-    height::Real = 600,
+    width = 12inch,
+    height = 8inch,
     plot_directory::AbstractString = default_plot_directory(),
     plot_filename::AbstractString = default_plot_filename(br; desc = desc, logscale = logscale),
     file_extensions = ["svg", "png"],
 ) where {T}
-    df = br.df
-    plt = if logscale
-        df |> @vlplot(
-            :line, color = :Library,
-            x = {:Size, scale={type=:log}}, y = {:GFLOPS},
-            width = width, height = height
+    colors = getcolor.(br.libraries);
+    libraries = string.(br.libraries)
+    xscale = logscale ? Scale.x_log10(labels=string ∘ roundint ∘ exp10) : Scale.x_continuous
+    # xscale = logscale ? Scale.x_log10 : Scale.x_continuous
+    plt = plot(
+        Gadfly.Guide.manual_color_key("Libraries", libraries, colors),
+        Guide.xlabel("Size"), Guide.ylabel("GFLOPS"), xscale
+    )
+    for i ∈ eachindex(libraries)
+        linestyle = isjulialib(libraries[i]) ? :solid : :dash
+        l = layer(
+            x = br.sizes, y = br.gflops[:,i],
+            Geom.line, Theme(default_color = colors[i], line_style = [linestyle])
         )
-    else
-        df |> @vlplot(
-            :line, color = :Library,
-            x = {:Size}, y = {:GFLOPS},
-            width = width, height = height
-        )
+        push!(plt, l)
     end
     mkpath(plot_directory)
     _filenames = String[]
+    extension_dict = Dict("svg" => SVG, "png" => PNG, "pdf" => PDF, "ps" => PS)
     for ext in file_extensions
         _filename = joinpath(plot_directory, "$(plot_filename).$(ext)")
-        save(_filename, plt)
+        draw(extension_dict[ext](_filename, width, height), plt)
         push!(_filenames, _filename)
     end
     return _filenames

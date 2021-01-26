@@ -1,5 +1,8 @@
-struct BenchmarkResult{T}
-    df::DataFrame
+struct BenchmarkResult{T,I<:Union{Int,NTuple{3,Int}}}
+    libraries::Vector{Symbol}
+    sizes::Vector{I}
+    gflops::Matrix{Float64}
+    times::Matrix{Float64}
     threaded::Bool
 end
 
@@ -26,7 +29,11 @@ end
 
 function Base.show(io::IO, br::BenchmarkResult{T}) where {T}
     println(io, "Bennchmark Result of Matrix{$T}, threaded = $(br.threaded)")
-    println(io, br.df)
+    df = DataFrame(Sizes = br.sizes)
+    for i ∈ eachindex(br.libraries)
+        setproperty!(df, br.libraries[i], br.gflops[:,i])
+    end
+    println(io, df)
 end
 
 function maybe_sleep(x)
@@ -121,6 +128,7 @@ Base.length(ls::LogSpace) = length(ls.r)
 Base.size(ls::LogSpace) = (length(ls.r),)
 Base.axes(ls::LogSpace) = axes(ls.r)
 Base.eltype(::LogSpace) = Int
+Base.convert(::Type{Vector{Int}}, l::LogSpace) = collect(l)
 
 """
     all_libs()
@@ -172,9 +180,9 @@ function runbench(
     sleep_time = 0.0
 ) where {T}
     if threaded
-        mkl_set_num_threads(NUM_CORES)
-        openblas_set_num_threads(NUM_CORES)
-        blis_set_num_threads(NUM_CORES)
+        mkl_set_num_threads(num_cores())
+        openblas_set_num_threads(num_cores())
+        blis_set_num_threads(num_cores())
     else
         mkl_set_num_threads(1)
         openblas_set_num_threads(1)
@@ -190,9 +198,8 @@ function runbench(
     end
     memory = Vector{T}(undef, max_matrix_sizes)
     library = reduce(vcat, (libs for _ ∈ eachindex(sizevec)))
-    Nres = length(libs) * length(sizes)
-    times = Vector{Float64}(undef, Nres)
-    gflop = Vector{Float64}(undef, Nres)
+    times = Matrix{Float64}(undef, length(sizes), length(libs))
+    gflop = similar(times);
     k = 0
 
     force_belapsed = true # force when compiling
@@ -213,16 +220,12 @@ function runbench(
                 funcs[i], C, A, B, sleep_time, force_belapsed, ref
             )
             gflops = 2e-9M*K*N / t
-            times[(k += 1)] = t
-            gflop[k] = gflops
+            times[j,i] = t
+            gflop[j,i] = gflops
             last_perfs[i+1] = (libs[i], round(gflops,sigdigits=4))
         end
         ProgressMeter.next!(p; showvalues = last_perfs)
         force_belapsed = false
     end
-    _sizes = kron(sizevec, trues(length(libs)))
-    BenchmarkResult{T}(
-        DataFrame(Size = _sizes, Library = library, GFLOPS = gflop, Time = times),
-        threaded
-    )
+    BenchmarkResult{T,eltype(sizes)}(libs, sizes, gflop, times, threaded)
 end
