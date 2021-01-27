@@ -15,8 +15,6 @@ for T in [Float64, Float32]
     @test benchmark_result_type(benchmark_result) === T
     df = benchmark_result_df(benchmark_result)
     @test df isa BLASBenchmarksCPU.DataFrame
-    @test df.Sizes == sizes
-    @test df.Sizes !== sizes # do we need this?
     plot_directory = mktempdir()
     BLASBenchmarksCPU.plot(
         benchmark_result;
