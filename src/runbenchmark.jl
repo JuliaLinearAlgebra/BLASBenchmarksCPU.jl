@@ -14,7 +14,7 @@ function benchmark_result_type(::BenchmarkResult{T}) where {T}
 end
 
 function _benchmark_result_df(sizes, libraries, mat)
-    df = DataFrame(Sizes = sizes)
+    df = DataFrame(Size = sizes)
     for i ∈ eachindex(libraries)
         setproperty!(df, libraries[i], mat[:,i])
     end
@@ -30,8 +30,8 @@ end
 """
 function benchmark_result_df(benchmark_result::BenchmarkResult)
     df = _benchmark_result_df(benchmark_result, :times)
-    df = stack(df, Not(:Sizes), variable_name = :Library, value_name = :Seconds)
-    df.GFLOPS = @. 2e-9 * matmul_length(df.Sizes) ./ df.Seconds
+    df = stack(df, Not(:Size), variable_name = :Library, value_name = :Seconds)
+    df.GFLOPS = @. 2e-9 * matmul_length(df.Size) ./ df.Seconds
     return df
 end
 
