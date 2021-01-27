@@ -13,12 +13,15 @@ function benchmark_result_type(::BenchmarkResult{T}) where {T}
     return T
 end
 
-function _benchmark_result_df(br::BenchmarkResult)
-    df = DataFrame(Sizes = br.sizes)
-    for i ∈ eachindex(br.libraries)
-        setproperty!(df, br.libraries[i], br.gflops[:,i])
+function _benchmark_result_df(sizes, libraries, mat)
+    df = DataFrame(Sizes = sizes)
+    for i ∈ eachindex(libraries)
+        setproperty!(df, libraries[i], mat[:,i])
     end
     return df
+end
+function _benchmark_result_df(br::BenchmarkResult, s::Symbol = :gflops)
+    _benchmark_result_df(br.sizes, br.libraries, getproperty(br, s))
 end
 
 
@@ -26,12 +29,9 @@ end
     benchmark_result_df(benchmark_result::BenchmarkResult)
 """
 function benchmark_result_df(benchmark_result::BenchmarkResult)
-    df = _benchmark_result_df(benchmark_result)
-    df.Sizes = copy(df.Sizes)
-    for i ∈ eachindex(benchmark_result.libraries)
-        column_name = Symbol(benchmark_result.libraries[i], :Time)
-        setproperty!(df, column_name, benchmark_result.times[:,i])
-    end
+    df = _benchmark_result_df(benchmark_result, :times)
+    df = stack(df, Not(:Sizes), variable_name = :Library, value_name = :Seconds)
+    df.GFLOPS = @. 2e-9 * matmul_length(df.Sizes) ./ df.Seconds
     return df
 end
 
@@ -82,6 +82,7 @@ end
 
 matmul_sizes(s::Integer) = (s,s,s)
 matmul_sizes(mkn::Tuple{Vararg{Integer,3}}) = mkn
+matmul_length(s) = prod(matmul_sizes(s))
 
 junk(::Type{T}) where {T <: Integer} = typemax(T) >> 1
 junk(::Type{T}) where {T} = T(NaN)
