@@ -26,11 +26,11 @@ function getfuncs(libs::Vector{Symbol}, threaded::Bool)::Vector{Function}
         elseif i === :BLIS || i === :blis
             gemmblis!
         elseif i === :Octavian
-            matmul!
+            threaded ? matmul! : matmul_serial!
         elseif i === :Tullio
             threaded ? tmul_threads! : tmul_no_threads!
         elseif i === :Gaius
-            Gaius.mul!
+            threaded ? Gaius.mul! : Gaius.mul_serial!
         elseif i === :generic || i === :Generic || i === :GENERIC
             generic_matmul!
         else

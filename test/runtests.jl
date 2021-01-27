@@ -9,3 +9,5 @@ include("test-suite-preamble.jl")
 @info("VectorizationBase.num_cores() is $(VectorizationBase.num_cores())")
 
 include("main.jl")
+include("interface.jl")
+
