@@ -13,11 +13,26 @@ function benchmark_result_type(::BenchmarkResult{T}) where {T}
     return T
 end
 
+function _benchmark_result_df(br::BenchmarkResult)
+    df = DataFrame(Sizes = br.sizes)
+    for i ∈ eachindex(br.libraries)
+        setproperty!(df, br.libraries[i], br.gflops[:,i])
+    end
+    return df
+end
+
+
 """
     benchmark_result_df(benchmark_result::BenchmarkResult)
 """
 function benchmark_result_df(benchmark_result::BenchmarkResult)
-    return deepcopy(benchmark_result.df)
+    df = _benchmark_result_df(benchmark_result)
+    df.Sizes = copy(df.Sizes)
+    for i ∈ eachindex(benchmark_result.libraries)
+        column_name = Symbol(benchmark_result.libraries[i], :Time)
+        setproperty!(df, column_name, benchmark_result.times[:,i])
+    end
+    return df
 end
 
 """
@@ -29,10 +44,7 @@ end
 
 function Base.show(io::IO, br::BenchmarkResult{T}) where {T}
     println(io, "Bennchmark Result of Matrix{$T}, threaded = $(br.threaded)")
-    df = DataFrame(Sizes = br.sizes)
-    for i ∈ eachindex(br.libraries)
-        setproperty!(df, br.libraries[i], br.gflops[:,i])
-    end
+    df = _benchmark_result_df(br)
     println(io, df)
 end
 
