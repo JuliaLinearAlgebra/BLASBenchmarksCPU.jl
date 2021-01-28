@@ -10,7 +10,7 @@ Defines the mapping between libraries and colors
 # make sure colors are distinguishable against white background by adding white to the seed list,
 # then deleting it from the resultant palette
 palette = distinguishable_colors(length(LIBRARIES) + 2, [colorant"white", colorant"black", colorant"#66023C", colorant"#0071c5"])
-deleteat!(palette, 1); deleteat!(palette, 2)
+deleteat!(palette, 1); deleteat!(palette, 1)
 const COLOR_MAP = Dict(zip(LIBRARIES, palette))
 getcolor(l::Symbol) = COLOR_MAP[l]
 for (alias,ref) ∈ [(:BLIS,:blis),(:generic,:Generic),(:GENERIC,:Generic)]
@@ -76,9 +76,17 @@ end
          logscale = true,
          width = 1200,
          height = 600,
+         measure = :minimum,
          plot_directory = default_plot_directory(),
          plot_filename = default_plot_filename(br; desc = desc, logscale = logscale),
-         file_extensions = ["svg", "png"])
+         file_extensions = ["svg", "png"],
+         displayplot = true)
+
+`measure` refers to the BenchmarkTools summary on times. Valid options are:
+`:minimum`, `:medain`, `:mean`, `:maximum`, and `:hmean`.
+
+ -  `:minimum` would yield the maximum `GFLOPS`, and would be the usual estimate used in Julia. 
+ - `:hmean`, the harmonic mean of the times, is usful if you want an average GFLOPS, instead of a GFLOPS computed with the average times.
 """
 function Gadfly.plot(br::BenchmarkResult{T}; kwargs...) where {T}
     _plot(br; kwargs...)
@@ -92,10 +100,13 @@ function _plot(
     logscale::Bool = true,
     width = 12inch,
     height = 8inch,
+    measure = :minimum,
     plot_directory::AbstractString = default_plot_directory(),
     plot_filename::AbstractString = default_plot_filename(br; desc = desc, logscale = logscale),
     file_extensions = ["svg", "png"],
+    displayplot = true
 ) where {T}
+    j = get_measure_index(measure) # throw early if `measure` invalid
     colors = getcolor.(br.libraries);
     libraries = string.(br.libraries)
     xscale = logscale ? Scale.x_log10(labels=string ∘ roundint ∘ exp10) : Scale.x_continuous
@@ -107,11 +118,12 @@ function _plot(
     for i ∈ eachindex(libraries)
         linestyle = isjulialib(libraries[i]) ? :solid : :dash
         l = layer(
-            x = br.sizes, y = br.gflops[:,i],
+            x = br.sizes, y = br.gflops[:,i,j],
             Geom.line, Theme(default_color = colors[i], line_style = [linestyle])
         )
         push!(plt, l)
     end
+    displayplot && display(plt)
     mkpath(plot_directory)
     _filenames = String[]
     extension_dict = Dict("svg" => SVG, "png" => PNG, "pdf" => PDF, "ps" => PS)
