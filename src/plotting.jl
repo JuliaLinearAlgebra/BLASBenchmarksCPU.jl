@@ -121,6 +121,7 @@ function _plot(
         )
         push!(plt, l)
     end
+    display(plt)
     mkpath(plot_directory)
     _filenames = String[]
     extension_dict = Dict("svg" => SVG, "png" => PNG, "pdf" => PDF, "ps" => PS)
