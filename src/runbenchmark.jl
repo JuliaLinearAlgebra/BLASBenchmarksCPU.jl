@@ -73,7 +73,7 @@ function maybe_sleep(x)
 end
 
 function benchmark_fun!(
-    f!::F, C, A, B, sleep_time, force_belapsed = false, reference = nothing
+    f!::F, summarystat, C, A, B, sleep_time, force_belapsed = false, reference = nothing
 ) where {F}
     maybe_sleep(sleep_time)
     t0 = @elapsed f!(C, A, B)
@@ -246,7 +246,8 @@ function runbench(
     threaded::Bool = Threads.nthreads() > 1,
     A_transform = identity,
     B_transform = identity,
-    sleep_time = 0.0
+    sleep_time = 0.0,
+    summarystat = minimum
 ) where {T}
     if threaded
         mkl_set_num_threads(num_cores())
@@ -287,7 +288,7 @@ function runbench(
         for i ∈ eachindex(funcs)
             C, ref = i == 1 ? (C0, nothing) : (fill!(C1,junk(T)), C0)
             t = benchmark_fun!(
-                funcs[i], C, A, B, sleep_time, force_belapsed, ref
+                funcs[i], summarystat, C, A, B, sleep_time, force_belapsed, ref
             )
             gffactor = 2e-9M*K*N
             @inbounds for k ∈ 1:4
