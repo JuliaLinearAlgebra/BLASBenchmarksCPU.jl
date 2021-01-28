@@ -53,23 +53,32 @@ function maybe_sleep(x)
 end
 
 function benchmark_fun!(
-    f!::F, C, A, B, sleep_time, force_belapsed = false, reference = nothing
+    f!::F, summarystat, C, A, B, sleep_time, force_belapsed = false, reference = nothing
 ) where {F}
     maybe_sleep(sleep_time)
-    tmin = @elapsed f!(C, A, B)
+    t0 = @elapsed f!(C, A, B)
     isnothing(reference) || @assert C ≈ reference
-    if force_belapsed || 2tmin < BenchmarkTools.DEFAULT_PARAMETERS.seconds
+    if force_belapsed || 2t0 < BenchmarkTools.DEFAULT_PARAMETERS.seconds
         maybe_sleep(sleep_time)
-        tmin = min(tmin, @belapsed $f!($C, $A, $B))
-    else#if tmin < BenchmarkTools.DEFAULT_PARAMETERS.seconds
+        br = @benchmark $f!($C, $A, $B)
+        tret = summarystat(br).time
+        if summarystat === minimum # don't want to do this for `median` or `mean`, for example
+            tret = min(tret, t0)
+        end
+    else
         maybe_sleep(sleep_time)
-        tmin = min(tmin, @elapsed f!(C, A, B))
-        if tmin < 2BenchmarkTools.DEFAULT_PARAMETERS.seconds
+        t1 = @elapsed f!(C, A, B)
+        maybe_sleep(sleep_time)
+        t2 = @elapsed f!(C, A, B)
+        if (t0+t1) < 4BenchmarkTools.DEFAULT_PARAMETERS.seconds
             maybe_sleep(sleep_time)
-            tmin = min(tmin, @elapsed f!(C, A, B))
+            t3 = @elapsed f!(C, A, B)
+            tret = summarystat((t0, t1, t2, t3))
+        else
+            tret = summarystat((t0, t1, t2))
         end
     end
-    tmin
+    return tret
 end
 _mat_size(M, N, ::typeof(adjoint)) = (N, M)
 _mat_size(M, N, ::typeof(transpose)) = (N, M)
@@ -79,7 +88,6 @@ function alloc_mat(_M, _N, memory::Vector{T}, off, f = identity) where {T}
     A = f(reshape(view(memory, (off+1):(off+M*N)), (M, N)))
     A, off + align(M*N, T)
 end
-
 matmul_sizes(s::Integer) = (s,s,s)
 matmul_sizes(mkn::Tuple{Vararg{Integer,3}}) = mkn
 matmul_length(s) = prod(matmul_sizes(s))
@@ -174,6 +182,8 @@ function default_libs(::Type{T}) where {T}
     end
 end
 
+
+
 """
     runbench(T = Float64;
              libs = default_libs(T),
@@ -181,7 +191,26 @@ end
              threaded::Bool = Threads.nthreads() > 1,
              A_transform = identity,
              B_transform = identity,
-             sleep_time = 0.0)
+             sleep_time = 0.0,
+             summarystat = median)
+
+ - T: The element type of the matrices.
+ - libs: Libraries to benchmark.
+ - sizes: Sizes of matrices to benchmark. Must be an iterable with either
+          `eltype(sizes) === Int` or `eltype(sizes) === NTuple{3,Int}`.
+          If the former, the matrices are square, with each dimension equal to the value.
+          If `i::NTuple{3,Int}`, it benchmarks `C = A * B` where `A` is `i[1]` by `i[2]`,
+            `B` is `i[2]` by `i[3]` and `C` is `i[1]` by `i[3]`.
+ - threaded: Should it benchmark multithreaded implementations?
+ - A_transform: a function to apply to `A`. Defaults to `identity`, but can be `adjoint`.
+ - B_transofrm: a function to apply to `B`. Defaults to `identity`, but can be `adjoint`.
+ - sleep_time: The use of this keyword argument is discouraged. If set, it will call `sleep`
+       in between benchmarks, the idea being to help keep the CPU cool. This is an unreliable
+       means of trying to get more reliable benchmarks. Instead, it's reccommended you disable
+       your systems turbo. Disabling it -- and reenabling when you're done benchmarking -- 
+       should be possible without requiring a reboot.
+  - summarystat: Which summary statistic should be reported? Defaults to `minimum`
+
 """
 function runbench(
     ::Type{T} = Float64;
@@ -190,7 +219,8 @@ function runbench(
     threaded::Bool = Threads.nthreads() > 1,
     A_transform = identity,
     B_transform = identity,
-    sleep_time = 0.0
+    sleep_time = 0.0,
+    summarystat = minimum
 ) where {T}
     if threaded
         mkl_set_num_threads(num_cores())
@@ -230,7 +260,7 @@ function runbench(
         for i ∈ eachindex(funcs)
             C, ref = i == 1 ? (C0, nothing) : (fill!(C1,junk(T)), C0)
             t = benchmark_fun!(
-                funcs[i], C, A, B, sleep_time, force_belapsed, ref
+                funcs[i], summarystat, C, A, B, sleep_time, force_belapsed, ref
             )
             gflops = 2e-9M*K*N / t
             times[j,i] = t
