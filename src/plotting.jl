@@ -76,9 +76,16 @@ end
          logscale = true,
          width = 1200,
          height = 600,
+         measure = :minimum,
          plot_directory = default_plot_directory(),
          plot_filename = default_plot_filename(br; desc = desc, logscale = logscale),
          file_extensions = ["svg", "png"])
+
+`measure` refers to the BenchmarkTools summary on times. Valid options are:
+`:minimum`, `:medain`, `:mean`, `:maximum`, and `:hmean`.
+
+ -  `:minimum` would yield the maximum `GFLOPS`, and would be the usual estimate used in Julia. 
+ - `:hmean`, the harmonic mean of the times, is usful if you want an average GFLOPS, instead of a GFLOPS computed with the average times.
 """
 function Gadfly.plot(br::BenchmarkResult{T}; kwargs...) where {T}
     _plot(br; kwargs...)
@@ -92,10 +99,12 @@ function _plot(
     logscale::Bool = true,
     width = 12inch,
     height = 8inch,
+    measure = :minimum,
     plot_directory::AbstractString = default_plot_directory(),
     plot_filename::AbstractString = default_plot_filename(br; desc = desc, logscale = logscale),
     file_extensions = ["svg", "png"],
 ) where {T}
+    j = get_measure_index(measure) # throw early if `measure` invalid
     colors = getcolor.(br.libraries);
     libraries = string.(br.libraries)
     xscale = logscale ? Scale.x_log10(labels=string ∘ roundint ∘ exp10) : Scale.x_continuous
@@ -107,7 +116,7 @@ function _plot(
     for i ∈ eachindex(libraries)
         linestyle = isjulialib(libraries[i]) ? :solid : :dash
         l = layer(
-            x = br.sizes, y = br.gflops[:,i],
+            x = br.sizes, y = br.gflops[:,i,j],
             Geom.line, Theme(default_color = colors[i], line_style = [linestyle])
         )
         push!(plt, l)

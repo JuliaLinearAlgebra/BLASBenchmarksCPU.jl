@@ -1,9 +1,15 @@
 struct BenchmarkResult{T,I<:Union{Int,NTuple{3,Int}}}
     libraries::Vector{Symbol}
     sizes::Vector{I}
-    gflops::Matrix{Float64}
-    times::Matrix{Float64}
+    gflops::Array{Float64,3}
+    times::Array{Float64,3}
     threaded::Bool
+    function BenchmarkResult{T}(libraries, sizes, gflops, times, threaded) where {T}
+        gflopsperm = permutedims(gflops, (2,3,1))
+        timesperm = permutedims(times, (2,3,1))
+        I = eltype(sizes)
+        new{T,I}(libraries, convert(Vector{I},sizes), gflopsperm, timesperm, threaded)
+    end
 end
 
 """
@@ -13,23 +19,37 @@ function benchmark_result_type(::BenchmarkResult{T}) where {T}
     return T
 end
 
-function _benchmark_result_df(sizes, libraries, mat)
+function get_measure_index(measure::Symbol)::Int
+    j = findfirst(==(measure), (:minimum,:median,:mean,:maximum,:hmean))
+    if j === nothing
+        throw(ArgumentError("`measure` argument must be one of (:minimum,:median,:mean,:maximum,:hmean), but was $(repr(measure))."))
+    end
+    return j
+end
+function _benchmark_result_df(sizes, libraries, mat, measure)
+    j = get_measure_index(measure)
     df = DataFrame(Size = sizes)
     for i ∈ eachindex(libraries)
-        setproperty!(df, libraries[i], mat[:,i])
+        setproperty!(df, libraries[i], mat[:,i,j])
     end
     return df
 end
-function _benchmark_result_df(br::BenchmarkResult, s::Symbol = :gflops)
-    _benchmark_result_df(br.sizes, br.libraries, getproperty(br, s))
+function _benchmark_result_df(br::BenchmarkResult, s::Symbol = :gflops, measure = :minimum)
+    _benchmark_result_df(br.sizes, br.libraries, getproperty(br, s), measure)
 end
 
 
 """
-    benchmark_result_df(benchmark_result::BenchmarkResult)
+    benchmark_result_df(benchmark_result::BenchmarkResult, `measure` = :minimum)
+
+`measure` refers to the BenchmarkTools summary on times. Valid options are:
+`:minimum`, `:medain`, `:mean`, `:maximum`, and `:hmean`.
+
+ -  `:minimum` would yield the maximum `GFLOPS`, and would be the usual estimate used in Julia.
+ - `:hmean`, the harmonic mean of the times, is usful if you want an average GFLOPS, instead of a GFLOPS computed with the average times.
 """
-function benchmark_result_df(benchmark_result::BenchmarkResult)
-    df = _benchmark_result_df(benchmark_result, :times)
+function benchmark_result_df(benchmark_result::BenchmarkResult, measure = :minimum)
+    df = _benchmark_result_df(benchmark_result, :times, measure)
     df = stack(df, Not(:Size), variable_name = :Library, value_name = :Seconds)
     df.GFLOPS = @. 2e-9 * matmul_length(df.Size) ./ df.Seconds
     return df
@@ -53,7 +73,7 @@ function maybe_sleep(x)
 end
 
 function benchmark_fun!(
-    f!::F, summarystat, C, A, B, sleep_time, force_belapsed = false, reference = nothing
+    f!::F, C, A, B, sleep_time, force_belapsed = false, reference = nothing
 ) where {F}
     maybe_sleep(sleep_time)
     t0 = @elapsed f!(C, A, B)
@@ -61,10 +81,11 @@ function benchmark_fun!(
     if force_belapsed || 2t0 < BenchmarkTools.DEFAULT_PARAMETERS.seconds
         maybe_sleep(sleep_time)
         br = @benchmark $f!($C, $A, $B)
-        tret = summarystat(br).time
-        if summarystat === minimum # don't want to do this for `median` or `mean`, for example
-            tret = min(tret, t0)
-        end
+        tmin = min(1e-9minimum(br).time, t0)
+        tmedian = 1e-9median(br).time
+        tmean = 1e-9mean(br).time
+        tmax = 1e-9maximum(br).time # We'll exclude the first for this...
+        thmean⁻¹ = 1e9mean(inv, br.times)
     else
         maybe_sleep(sleep_time)
         t1 = @elapsed f!(C, A, B)
@@ -73,12 +94,20 @@ function benchmark_fun!(
         if (t0+t1) < 4BenchmarkTools.DEFAULT_PARAMETERS.seconds
             maybe_sleep(sleep_time)
             t3 = @elapsed f!(C, A, B)
-            tret = summarystat((t0, t1, t2, t3))
+            tmin = minimum((t0, t1, t2, t3))
+            tmedian = median((t0, t1, t2, t3))
+            tmean = mean((t0, t1, t2, t3))
+            tmax = maximum((t0, t1, t2, t3))
+            thmean⁻¹ = mean(inv, (t0, t1, t2, t3))
         else
-            tret = summarystat((t0, t1, t2))
+            tmin = minimum((t0, t1, t2))
+            tmedian = median((t0, t1, t2))
+            tmean = mean((t0, t1, t2))
+            tmax = maximum((t0, t1, t2))
+            thmean⁻¹ = mean(inv, (t0, t1, t2))
         end
     end
-    return tret
+    return tmin, tmedian, tmean, tmax, thmean⁻¹
 end
 _mat_size(M, N, ::typeof(adjoint)) = (N, M)
 _mat_size(M, N, ::typeof(transpose)) = (N, M)
@@ -191,8 +220,7 @@ end
              threaded::Bool = Threads.nthreads() > 1,
              A_transform = identity,
              B_transform = identity,
-             sleep_time = 0.0,
-             summarystat = median)
+             sleep_time = 0.0)
 
  - T: The element type of the matrices.
  - libs: Libraries to benchmark.
@@ -207,9 +235,8 @@ end
  - sleep_time: The use of this keyword argument is discouraged. If set, it will call `sleep`
        in between benchmarks, the idea being to help keep the CPU cool. This is an unreliable
        means of trying to get more reliable benchmarks. Instead, it's reccommended you disable
-       your systems turbo. Disabling it -- and reenabling when you're done benchmarking -- 
+       your systems turbo. Disabling it -- and reenabling when you're done benchmarking --
        should be possible without requiring a reboot.
-  - summarystat: Which summary statistic should be reported? Defaults to `minimum`
 
 """
 function runbench(
@@ -219,8 +246,7 @@ function runbench(
     threaded::Bool = Threads.nthreads() > 1,
     A_transform = identity,
     B_transform = identity,
-    sleep_time = 0.0,
-    summarystat = minimum
+    sleep_time = 0.0
 ) where {T}
     if threaded
         mkl_set_num_threads(num_cores())
@@ -241,14 +267,15 @@ function runbench(
     end
     memory = Vector{T}(undef, max_matrix_sizes)
     library = reduce(vcat, (libs for _ ∈ eachindex(sizevec)))
-    times = Matrix{Float64}(undef, length(sizes), length(libs))
+    times = Array{Float64}(undef, 5, length(sizes), length(libs))
     gflop = similar(times);
     k = 0
 
     force_belapsed = true # force when compiling
 
     p = Progress(length(sizes))
-    last_perfs = Vector{Tuple{Symbol,Union{Float64,NTuple{3,Int}}}}(undef, length(libs)+1)
+    gflop_report_type = NamedTuple{(:MedianGFLOPS, :MaxGFLOPS), Tuple{Float64, Float64}}
+    last_perfs = Vector{Tuple{Symbol,Union{gflop_report_type,NTuple{3,Int}}}}(undef, length(libs)+1)
     for (j,s) ∈ enumerate(sizevec)
         M, K, N = matmul_sizes(s)
         A,  off = alloc_mat(M, K, memory,   0, A_transform)
@@ -260,15 +287,24 @@ function runbench(
         for i ∈ eachindex(funcs)
             C, ref = i == 1 ? (C0, nothing) : (fill!(C1,junk(T)), C0)
             t = benchmark_fun!(
-                funcs[i], summarystat, C, A, B, sleep_time, force_belapsed, ref
+                funcs[i], C, A, B, sleep_time, force_belapsed, ref
             )
-            gflops = 2e-9M*K*N / t
-            times[j,i] = t
-            gflop[j,i] = gflops
-            last_perfs[i+1] = (libs[i], round(gflops,sigdigits=4))
+            gffactor = 2e-9M*K*N
+            @inbounds for k ∈ 1:4
+                times[k,j,i] = t[k]
+                gflop[k,j,i] = gffactor / t[k]
+            end
+            times[5,j,i] = inv(t[5])
+            gflop[5,j,i] = gffactor * t[5]
+            gflops = round.((gflop[1,j,i], gflop[2,j,i]), sigdigits = 4)
+            gflops = (
+                MedianGFLOPS = round(gflop[2,j,i], sigdigits = 4),
+                MaxGFLOPS = round(gflop[1,j,i], sigdigits = 4)
+            )
+            last_perfs[i+1] = (libs[i], gflops)
         end
         ProgressMeter.next!(p; showvalues = last_perfs)
         force_belapsed = false
     end
-    BenchmarkResult{T,eltype(sizes)}(libs, sizes, gflop, times, threaded)
+    BenchmarkResult{T}(libs, sizes, gflop, times, threaded)
 end
