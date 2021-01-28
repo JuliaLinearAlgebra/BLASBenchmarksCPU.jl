@@ -10,7 +10,7 @@ Defines the mapping between libraries and colors
 # make sure colors are distinguishable against white background by adding white to the seed list,
 # then deleting it from the resultant palette
 palette = distinguishable_colors(length(LIBRARIES) + 2, [colorant"white", colorant"black", colorant"#66023C", colorant"#0071c5"])
-deleteat!(palette, 1); deleteat!(palette, 2)
+deleteat!(palette, 1); deleteat!(palette, 1)
 const COLOR_MAP = Dict(zip(LIBRARIES, palette))
 getcolor(l::Symbol) = COLOR_MAP[l]
 for (alias,ref) ∈ [(:BLIS,:blis),(:generic,:Generic),(:GENERIC,:Generic)]
@@ -79,7 +79,8 @@ end
          measure = :minimum,
          plot_directory = default_plot_directory(),
          plot_filename = default_plot_filename(br; desc = desc, logscale = logscale),
-         file_extensions = ["svg", "png"])
+         file_extensions = ["svg", "png"],
+         displayplot = true)
 
 `measure` refers to the BenchmarkTools summary on times. Valid options are:
 `:minimum`, `:medain`, `:mean`, `:maximum`, and `:hmean`.
@@ -103,6 +104,7 @@ function _plot(
     plot_directory::AbstractString = default_plot_directory(),
     plot_filename::AbstractString = default_plot_filename(br; desc = desc, logscale = logscale),
     file_extensions = ["svg", "png"],
+    displayplot = true
 ) where {T}
     j = get_measure_index(measure) # throw early if `measure` invalid
     colors = getcolor.(br.libraries);
@@ -121,7 +123,7 @@ function _plot(
         )
         push!(plt, l)
     end
-    display(plt)
+    displayplot && display(plt)
     mkpath(plot_directory)
     _filenames = String[]
     extension_dict = Dict("svg" => SVG, "png" => PNG, "pdf" => PDF, "ps" => PS)

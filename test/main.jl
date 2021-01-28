@@ -19,20 +19,24 @@ for T in [Float64, Float32]
     BLASBenchmarksCPU.plot(
         benchmark_result;
         plot_directory = plot_directory,
+        displayplot = false
     )
     BLASBenchmarksCPU.plot(
         benchmark_result;
         plot_directory = plot_directory,
-        measure = :median
+        measure = :median,
+        displayplot = false
     )
     BLASBenchmarksCPU.plot(
         benchmark_result;
         plot_directory = plot_directory,
-        measure = :mean
+        measure = :mean,
+        displayplot = false
     )
     BLASBenchmarksCPU.plot(
         benchmark_result;
         plot_directory = plot_directory,
-        measure = :maximum
+        measure = :maximum,
+        displayplot = false
     )
 end
