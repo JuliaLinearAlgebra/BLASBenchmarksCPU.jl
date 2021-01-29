@@ -34,7 +34,7 @@ LoopVectorization = "0.10"
 Octavian = "0.2"
 ProgressMeter = "1.4"
 Tullio = "0.2"
-VectorizationBase = "0.16"
+VectorizationBase = "0.16, 0.17"
 julia = "1.5"
 
 [extras]
