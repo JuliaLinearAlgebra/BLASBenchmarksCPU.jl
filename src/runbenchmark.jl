@@ -63,7 +63,7 @@ function benchmark_result_threaded(benchmark_result::BenchmarkResult)
 end
 
 function Base.show(io::IO, br::BenchmarkResult{T}) where {T}
-    println(io, "Bennchmark Result of Matrix{$T}, threaded = $(br.threaded)")
+    println(io, "Benchmark Result of Matrix{$T}, threaded = $(br.threaded)")
     df = _benchmark_result_df(br)
     println(io, df)
 end
