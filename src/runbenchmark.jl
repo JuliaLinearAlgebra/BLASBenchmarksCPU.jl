@@ -85,7 +85,7 @@ function benchmark_fun!(
 ) where {F}
     maybe_sleep(sleep_time)
     t0 = @elapsed f!(C, A, B)
-    if (reference !== nothing) && (C !≈ reference)
+    if (reference !== nothing) && (!(C ≈ reference))
         msg = "C is not approximately equal to reference"
         @error(msg, comment)
         throw(ErrorException(msg))
