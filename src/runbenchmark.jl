@@ -73,11 +73,23 @@ function maybe_sleep(x)
 end
 
 function benchmark_fun!(
-    f!::F, summarystat, C, A, B, sleep_time, force_belapsed = false, reference = nothing
+    f!::F,
+    summarystat,
+    C,
+    A,
+    B,
+    sleep_time,
+    force_belapsed,
+    reference,
+    comment::String, # `comment` is a place to put the library name, the dimensions of the matrices, etc.
 ) where {F}
     maybe_sleep(sleep_time)
     t0 = @elapsed f!(C, A, B)
-    isnothing(reference) || @assert C ≈ reference
+    if (reference !== nothing) && (!(C ≈ reference))
+        msg = "C is not approximately equal to reference"
+        @error(msg, comment)
+        throw(ErrorException(msg))
+    end
     if force_belapsed || 2t0 < BenchmarkTools.DEFAULT_PARAMETERS.seconds
         maybe_sleep(sleep_time)
         br = @benchmark $f!($C, $A, $B)
@@ -287,8 +299,18 @@ function runbench(
         last_perfs[1] = (:Size, (M,K,N) .% Int)
         for i ∈ eachindex(funcs)
             C, ref = i == 1 ? (C0, nothing) : (fill!(C1,junk(T)), C0)
+            lib = library[i]
+            comment = "lib=$(lib), M=$(M), K=$(K), N=$(N)"
             t = benchmark_fun!(
-                funcs[i], summarystat, C, A, B, sleep_time, force_belapsed, ref
+                funcs[i],
+                summarystat,
+                C,
+                A,
+                B,
+                sleep_time,
+                force_belapsed,
+                ref,
+                comment,
             )
             gffactor = 2e-9M*K*N
             @inbounds for k ∈ 1:4
