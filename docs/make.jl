@@ -4,11 +4,11 @@ using Documenter
 makedocs(;
     modules=[BLASBenchmarksCPU],
     authors="Chris Elrod <elrodc@gmail.com> and contributors",
-    repo="https://github.com/chriselrod/BLASBenchmarksCPU.jl/blob/{commit}{path}#L{line}",
+    repo="https://github.com/JuliaLinearAlgebra/BLASBenchmarksCPU.jl/blob/{commit}{path}#L{line}",
     sitename="BLASBenchmarksCPU.jl",
     format=Documenter.HTML(;
         prettyurls=get(ENV, "CI", "false") == "true",
-        canonical="https://chriselrod.github.io/BLASBenchmarksCPU.jl",
+        canonical="https://JuliaLinearAlgebra.github.io/BLASBenchmarksCPU.jl",
         assets=String[],
     ),
     pages=[
@@ -23,5 +23,5 @@ makedocs(;
 )
 
 deploydocs(;
-    repo="github.com/chriselrod/BLASBenchmarksCPU.jl",
+    repo="github.com/JuliaLinearAlgebra/BLASBenchmarksCPU.jl",
 )
