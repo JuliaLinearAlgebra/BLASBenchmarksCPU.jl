@@ -4,12 +4,12 @@ struct BenchmarkResult{T,I<:Union{Int,NTuple{3,Int}}}
     gflops::Array{Float64,3}
     times::Array{Float64,3}
     threaded::Bool
-    function BenchmarkResult{T}(libraries, sizes, gflops, times, threaded) where {T}
-        gflopsperm = permutedims(gflops, (2,3,1))
-        timesperm = permutedims(times, (2,3,1))
-        I = eltype(sizes)
-        new{T,I}(libraries, convert(Vector{I},sizes), gflopsperm, timesperm, threaded)
-    end
+end
+function BenchmarkResult{T}(libraries, sizes, gflops, times, threaded) where {T}
+    gflopsperm = permutedims(gflops, (2,3,1))
+    timesperm = permutedims(times, (2,3,1))
+    I = eltype(sizes)
+    BenchmarkResult{T,I}(libraries, convert(Vector{I},sizes), gflopsperm, timesperm, threaded)
 end
 
 """
@@ -74,7 +74,6 @@ end
 
 function benchmark_fun!(
     f!::F,
-    summarystat,
     C,
     A,
     B,
@@ -203,6 +202,7 @@ function all_libs()
         :Octavian,
         :OpenBLAS,
         :Tullio,
+        :LoopVectorization
     ]
     return libs
 end
@@ -258,8 +258,7 @@ function runbench(
     threaded::Bool = Threads.nthreads() > 1,
     A_transform = identity,
     B_transform = identity,
-    sleep_time = 0.0,
-    summarystat = minimum
+    sleep_time = 0.0
 ) where {T}
     if threaded
         mkl_set_num_threads(num_cores())
@@ -303,7 +302,6 @@ function runbench(
             comment = "lib=$(lib), M=$(M), K=$(K), N=$(N)"
             t = benchmark_fun!(
                 funcs[i],
-                summarystat,
                 C,
                 A,
                 B,

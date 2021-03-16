@@ -15,7 +15,7 @@ _transpose(A::Transpose) = transpose(A)
 for (name,typ,suff) ∈ [
     ("mkl", :Int32, ""),
     ("openblas", :Int64, "_64_"),
-    ("blis", :Int32, "_")
+    ("blis", :Int64, "_64_")
 ]
     uname = uppercase(name)
     lib = Symbol("lib", uname)
