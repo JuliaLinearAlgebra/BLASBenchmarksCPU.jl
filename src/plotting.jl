@@ -3,7 +3,7 @@
 ####################################### Colors #####################################################
 ####################################################################################################
 
-const LIBRARIES = [:Octavian, :MKL, :OpenBLAS, :blis, :Tullio, :Gaius, :Generic];
+const LIBRARIES = [:Octavian, :MKL, :OpenBLAS, :blis, :Tullio, :Gaius, :LoopVectorization, :Generic];
 """
 Defines the mapping between libraries and colors
 """# #0071c5 == Intel Blue
@@ -27,14 +27,14 @@ isjulialib(x) = x ∈ JULIA_LIBS
 
 
 function pick_suffix(desc = "")
-    suffix = if VectorizationBase.has_feature("x86_64_avx512f")
+    suffix = if Bool(VectorizationBase.has_feature(Val(:x86_64_avx512f)))
         "AVX512"
-    elseif VectorizationBase.has_feature("x86_64_avx2")
+    elseif Bool(VectorizationBase.has_feature(Val(:x86_64_avx2)))
         "AVX2"
-    elseif VectorizationBase.has_feature("x86_64_avx")
+    elseif Bool(VectorizationBase.has_feature(Val(:x86_64_avx)))
         "AVX"
     else
-        "REGSIZE$(VectorizationBase.register_size())"
+        "REGSIZE$(Int(VectorizationBase.register_size()))"
     end
     if desc != ""
         suffix *= '_' * desc
@@ -90,7 +90,6 @@ end
 """
 function Gadfly.plot(br::BenchmarkResult{T}; kwargs...) where {T}
     _plot(br; kwargs...)
-    return nothing
 end
 roundint(x) = round(Int,x)
 # `_plot` is just like `plot`, except _plot returns the filenames
