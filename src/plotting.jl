@@ -34,7 +34,7 @@ function pick_suffix(desc = "")
     elseif Bool(VectorizationBase.has_feature(Val(:x86_64_avx)))
         "AVX"
     else
-        "REGSIZE$(VectorizationBase.register_size())"
+        "REGSIZE$(Int(VectorizationBase.register_size()))"
     end
     if desc != ""
         suffix *= '_' * desc
