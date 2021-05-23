@@ -288,7 +288,13 @@ function runbench(
     p = Progress(length(sizes))
     gflop_report_type = NamedTuple{(:MedianGFLOPS, :MaxGFLOPS), Tuple{Float64, Float64}}
     last_perfs = Vector{Tuple{Symbol,Union{gflop_report_type,NTuple{3,Int}}}}(undef, length(libs)+1)
-    for (j,s) ∈ enumerate(sizevec)
+    for _j in 0:length(sizevec)-1
+        if iseven(_j)
+            j = (_j >> 1) + 1
+        else
+            j = length(sizevec) - (_j >> 1)
+        end
+        s = sizevec[j]
         M, K, N = matmul_sizes(s)
         A,  off = alloc_mat(M, K, memory,   0, A_transform)
         B,  off = alloc_mat(K, N, memory, off, B_transform)
