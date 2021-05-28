@@ -40,6 +40,8 @@ function getfuncs(libs::Vector{Symbol}, threaded::Bool)::Vector{Function}
     map(libs) do i
         if i === :MKL
             gemmmkl!
+        elseif i === :MKL_DIRECT || i === :MKL_direct
+            gemmmkl_direct!
         elseif i === :OpenBLAS
             gemmopenblas!
         elseif i === :BLIS || i === :blis
