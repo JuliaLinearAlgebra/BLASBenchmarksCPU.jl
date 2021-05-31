@@ -3,7 +3,7 @@
 ####################################### Colors #####################################################
 ####################################################################################################
 
-const LIBRARIES = [:Octavian, :MKL, :OpenBLAS, :blis, :Tullio, :Gaius, :LoopVectorization, :Generic];
+const LIBRARIES = [:Octavian, :MKL, :OpenBLAS, :blis, :Tullio, :Gaius, :LoopVectorization, :Generic, :AppleAccelerate];
 """
 Defines the mapping between libraries and colors
 """# #0071c5 == Intel Blue

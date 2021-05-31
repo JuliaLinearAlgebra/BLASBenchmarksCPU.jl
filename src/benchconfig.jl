@@ -52,6 +52,8 @@ function getfuncs(libs::Vector{Symbol}, threaded::Bool)::Vector{Function}
             threaded ? Gaius.mul! : Gaius.mul_serial!
         elseif i === :LoopVectorization
             threaded ? lvmul_threads! : lvmul_no_threads!
+        elseif i === :AppleAccelerate
+            AppleAccelerateLinAlgWrapper.gemm!
         elseif i === :generic || i === :Generic || i === :GENERIC
             generic_matmul!
         else
