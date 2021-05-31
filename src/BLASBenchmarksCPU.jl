@@ -45,7 +45,7 @@ export gemmopenblas!
 export openblas_set_num_threads
 
 # MKL
-export gemmmkl!
+export gemmmkl!, gemmmkl_direct!
 export mkl_set_num_threads
 
 # set threads

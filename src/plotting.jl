@@ -109,10 +109,9 @@ function _plot(
     colors = getcolor.(br.libraries);
     libraries = string.(br.libraries)
     xscale = logscale ? Scale.x_log10(labels=string ∘ roundint ∘ exp10) : Scale.x_continuous
-    # xscale = logscale ? Scale.x_log10 : Scale.x_continuous
     plt = plot(
         Gadfly.Guide.manual_color_key("Libraries", libraries, colors),
-        Guide.xlabel("Size"), Guide.ylabel("GFLOPS"), xscale
+        Guide.xlabel("Size"), Guide.ylabel("GFLOPS"), xscale#, xmin = minsz, xmax = maxsz
     )
     for i ∈ eachindex(libraries)
         linestyle = isjulialib(libraries[i]) ? :solid : :dash
@@ -122,6 +121,9 @@ function _plot(
         )
         push!(plt, l)
     end
+    minsz, maxsz = extrema(br.sizes)
+    l10min = log10(minsz); l10max = log10(maxsz);
+    push!(plt, Stat.xticks(ticks = range(l10min, l10max, length=round(Int,(1+2*(l10max-l10min))))))
     displayplot && display(plt)
     mkpath(plot_directory)
     _filenames = String[]
