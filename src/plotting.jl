@@ -3,7 +3,7 @@
 ####################################### Colors #####################################################
 ####################################################################################################
 
-const LIBRARIES = [:Octavian, :MKL, :OpenBLAS, :blis, :Tullio, :Gaius, :LoopVectorization, :Generic];
+const LIBRARIES = [:Octavian, :MKL, :OpenBLAS, :blis, :Tullio, :Gaius, :LoopVectorization, :Generic, :RecursiveFactorization, :TriangularSolve];
 """
 Defines the mapping between libraries and colors
 """# #0071c5 == Intel Blue
@@ -17,7 +17,7 @@ for (alias,ref) ∈ [(:BLIS,:blis),(:generic,:Generic),(:GENERIC,:Generic)]
     COLOR_MAP[alias] = COLOR_MAP[ref]
 end
 
-const JULIA_LIBS = Set(["Octavian", "Tullio", "Gaius", "Generic", "GENERIC", "generic"])
+const JULIA_LIBS = Set(["Octavian", "Tullio", "Gaius", "Generic", "GENERIC", "generic", "RecursiveFactorization", "TriangularSolve"])
 isjulialib(x) = x ∈ JULIA_LIBS
 
 
