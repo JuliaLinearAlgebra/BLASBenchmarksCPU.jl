@@ -78,47 +78,50 @@ function benchmark_fun!(
     A,
     B,
     sleep_time,
-    force_belapsed,
+    discard_first,
     reference,
     comment::String, # `comment` is a place to put the library name, the dimensions of the matrices, etc.
 ) where {F}
+  maybe_sleep(sleep_time)
+  if discard_first
+    @elapsed f!(C, A, B)
+  end
+  t0 = @elapsed f!(C, A, B)
+  if (reference !== nothing) && (!(C ≈ reference))
+    msg = "C is not approximately equal to reference"
+    @error(msg, comment)
+    throw(ErrorException(msg))
+  end
+  if 2t0 < BenchmarkTools.DEFAULT_PARAMETERS.seconds
     maybe_sleep(sleep_time)
-    t0 = @elapsed f!(C, A, B)
-    if (reference !== nothing) && (!(C ≈ reference))
-        msg = "C is not approximately equal to reference"
-        @error(msg, comment)
-        throw(ErrorException(msg))
-    end
-    if force_belapsed || 2t0 < BenchmarkTools.DEFAULT_PARAMETERS.seconds
-        maybe_sleep(sleep_time)
-        br = @benchmark $f!($C, $A, $B)
-        tmin = min(1e-9minimum(br).time, t0)
-        tmedian = 1e-9median(br).time
-        tmean = 1e-9mean(br).time
-        tmax = 1e-9maximum(br).time # We'll exclude the first for this...
-        thmean⁻¹ = 1e9mean(inv, br.times)
+    br = @benchmark $f!($C, $A, $B)
+    tmin = min(1e-9minimum(br).time, t0)
+    tmedian = 1e-9median(br).time
+    tmean = 1e-9mean(br).time
+    tmax = 1e-9maximum(br).time # We'll exclude the first for this...
+    thmean⁻¹ = 1e9mean(inv, br.times)
+  else
+    maybe_sleep(sleep_time)
+    t1 = @elapsed f!(C, A, B)
+    maybe_sleep(sleep_time)
+    t2 = @elapsed f!(C, A, B)
+    if (t0+t1) < 4BenchmarkTools.DEFAULT_PARAMETERS.seconds
+      maybe_sleep(sleep_time)
+      t3 = @elapsed f!(C, A, B)
+      tmin = minimum((t0, t1, t2, t3))
+      tmedian = median((t0, t1, t2, t3))
+      tmean = mean((t0, t1, t2, t3))
+      tmax = maximum((t0, t1, t2, t3))
+      thmean⁻¹ = mean(inv, (t0, t1, t2, t3))
     else
-        maybe_sleep(sleep_time)
-        t1 = @elapsed f!(C, A, B)
-        maybe_sleep(sleep_time)
-        t2 = @elapsed f!(C, A, B)
-        if (t0+t1) < 4BenchmarkTools.DEFAULT_PARAMETERS.seconds
-            maybe_sleep(sleep_time)
-            t3 = @elapsed f!(C, A, B)
-            tmin = minimum((t0, t1, t2, t3))
-            tmedian = median((t0, t1, t2, t3))
-            tmean = mean((t0, t1, t2, t3))
-            tmax = maximum((t0, t1, t2, t3))
-            thmean⁻¹ = mean(inv, (t0, t1, t2, t3))
-        else
-            tmin = minimum((t0, t1, t2))
-            tmedian = median((t0, t1, t2))
-            tmean = mean((t0, t1, t2))
-            tmax = maximum((t0, t1, t2))
-            thmean⁻¹ = mean(inv, (t0, t1, t2))
-        end
+      tmin = minimum((t0, t1, t2))
+      tmedian = median((t0, t1, t2))
+      tmean = mean((t0, t1, t2))
+      tmax = maximum((t0, t1, t2))
+      thmean⁻¹ = mean(inv, (t0, t1, t2))
     end
-    return tmin, tmedian, tmean, tmax, thmean⁻¹
+  end
+  return tmin, tmedian, tmean, tmax, thmean⁻¹
 end
 _mat_size(M, N, ::typeof(adjoint)) = (N, M)
 _mat_size(M, N, ::typeof(transpose)) = (N, M)
@@ -223,7 +226,19 @@ function default_libs(::Type{T}) where {T}
     end
 end
 
-
+function luflop(m, n=m; innerflop=2)
+  sum(1:min(m, n)) do k
+    invflop = 1
+    scaleflop = isempty(k+1:m) ? 0 : sum(k+1:m)
+    updateflop = isempty(k+1:n) ? 0 : sum(k+1:n) do j
+      isempty(k+1:m) ? 0 : sum(k+1:m) do i
+        innerflop
+      end
+    end
+    invflop + scaleflop + updateflop
+  end * 1e-9
+end
+gemmflop(m,n,k) = 2e-9m*n*k
 
 """
     runbench(T = Float64;
@@ -252,86 +267,177 @@ end
 
 """
 function runbench(
-    ::Type{T} = Float64;
-    libs = default_libs(T),
-    sizes = logspace(2, 4000, 200),
-    threaded::Bool = Threads.nthreads() > 1,
-    A_transform = identity,
-    B_transform = identity,
-    sleep_time = 0.0
+  ::Type{T} = Float64;
+  libs = default_libs(T),
+  sizes = logspace(2, 4000, 200),
+  threaded::Bool = Threads.nthreads() > 1,
+  A_transform = identity,
+  B_transform = identity,
+  sleep_time = 0.0
 ) where {T}
-    if threaded
-        mkl_set_num_threads(num_cores())
-        openblas_set_num_threads(num_cores())
-        blis_set_num_threads(num_cores())
+  if threaded
+    mkl_set_num_threads(num_cores())
+    openblas_set_num_threads(num_cores())
+    blis_set_num_threads(num_cores())
+  else
+    mkl_set_num_threads(1)
+    openblas_set_num_threads(1)
+    blis_set_num_threads(1)
+  end
+  benchtime = BenchmarkTools.DEFAULT_PARAMETERS.seconds
+  BenchmarkTools.DEFAULT_PARAMETERS.seconds = 0.5
+  funcs = getfuncs(libs, threaded)
+  sizevec = collect(sizes)
+  # Hack to workaround https://github.com/JuliaCI/BenchmarkTools.jl/issues/127
+  # Use the same memory every time, to reduce accumulation
+  max_matrix_sizes = maximum(sizevec) do s
+    M, K, N = matmul_sizes(s)
+    align(M * K, T) + align(K * N, T) + align(M * N, T) * 2
+  end
+  memory = Vector{T}(undef, max_matrix_sizes)
+  library = reduce(vcat, (libs for _ ∈ eachindex(sizevec)))
+  times = Array{Float64}(undef, 5, length(sizes), length(libs))
+  gflop = similar(times);
+
+  discard_first = true # force when compiling
+
+  p = Progress(length(sizes))
+  gflop_report_type = NamedTuple{(:MedianGFLOPS, :MaxGFLOPS), Tuple{Float64, Float64}}
+  last_perfs = Vector{Tuple{Symbol,Union{gflop_report_type,NTuple{3,Int}}}}(undef, length(libs)+1)
+  for _j in 0:length(sizevec)-1
+    if iseven(_j)
+      j = (_j >> 1) + 1
     else
-        mkl_set_num_threads(1)
-        openblas_set_num_threads(1)
-        blis_set_num_threads(1)
+      j = length(sizevec) - (_j >> 1)
     end
-    funcs = getfuncs(libs, threaded)
-    sizevec = collect(sizes)
-    # Hack to workaround https://github.com/JuliaCI/BenchmarkTools.jl/issues/127
-    # Use the same memory every time, to reduce accumulation
-    max_matrix_sizes = maximum(sizevec) do s
-        M, K, N = matmul_sizes(s)
-        align(M * K, T) + align(K * N, T) + align(M * N, T) * 2
+    s = sizevec[j]
+    M, K, N = matmul_sizes(s)
+    A,  off = alloc_mat(M, K, memory,   0, A_transform)
+    B,  off = alloc_mat(K, N, memory, off, B_transform)
+    rand!(A); rand!(B);
+    C0, off = alloc_mat(M, N, memory, off)
+    C1, off = alloc_mat(M, N, memory, off)
+    last_perfs[1] = (:Size, (M,K,N) .% Int)
+    for i ∈ eachindex(funcs)
+      C, ref = i == 1 ? (C0, nothing) : (fill!(C1,junk(T)), C0)
+      lib = library[i]
+      comment = "lib=$(lib), M=$(M), K=$(K), N=$(N)"
+      t = benchmark_fun!(
+        funcs[i],
+        C,
+        A,
+        B,
+        sleep_time,
+        discard_first,
+        ref,
+        comment,
+      )
+      gffactor = gemmflop(M,K,N)
+      @inbounds for k ∈ 1:4
+        times[k,j,i] = t[k]
+        gflop[k,j,i] = gffactor / t[k]
+      end
+      times[5,j,i] = inv(t[5])
+      gflop[5,j,i] = gffactor * t[5]
+      gflops = round.((gflop[1,j,i], gflop[2,j,i]), sigdigits = 4)
+      gflops = (
+        MedianGFLOPS = round(gflop[2,j,i], sigdigits = 4),
+        MaxGFLOPS = round(gflop[1,j,i], sigdigits = 4)
+      )
+      last_perfs[i+1] = (libs[i], gflops)
     end
-    memory = Vector{T}(undef, max_matrix_sizes)
-    library = reduce(vcat, (libs for _ ∈ eachindex(sizevec)))
-    times = Array{Float64}(undef, 5, length(sizes), length(libs))
-    gflop = similar(times);
-    k = 0
+    ProgressMeter.next!(p; showvalues = last_perfs)
+    if isodd(_j)
+      discard_first = false
+    end
+  end
+  BenchmarkTools.DEFAULT_PARAMETERS.seconds = benchtime # restore previous state
+  BenchmarkResult{T}(libs, sizes, gflop, times, threaded)
+end
 
-    force_belapsed = true # force when compiling
+const LUFUNCS = Dict(:RecursiveFactorization => RecursiveFactorization.lu!, :MKL => lumkl!, :OpenBLAS => luopenblas!)
+struct LUWrapperFunc{F}; f::F; end
+(lu::LUWrapperFunc)(A,B,C) = lu.f(copyto!(A,B))
+function runlubench(
+  ::Type{T} = Float64;
+  libs = [:RecursiveFactorization, :MKL, :OpenBLAS],
+  sizes = logspace(2, 4000, 200),
+  threaded::Bool = Threads.nthreads() > 1,
+  A_transform = identity,
+  B_transform = identity,
+  sleep_time = 0.0
+) where {T}
+  funcs = LUWrapperFunc.(getindex.(Ref(LUFUNCS), libs))
+  if threaded
+    mkl_set_num_threads(num_cores())
+    openblas_set_num_threads(num_cores())
+  else
+    mkl_set_num_threads(1)
+    openblas_set_num_threads(1)
+  end
+  benchtime = BenchmarkTools.DEFAULT_PARAMETERS.seconds
+  BenchmarkTools.DEFAULT_PARAMETERS.seconds = 0.5
+  sizevec = collect(sizes)
+  # Hack to workaround https://github.com/JuliaCI/BenchmarkTools.jl/issues/127
+  # Use the same memory every time, to reduce accumulation
+  max_matrix_sizes = 2maximum(sizevec)^2 + (256 ÷ sizeof(T))
+  memory = Vector{T}(undef, max_matrix_sizes)
+  library = reduce(vcat, (libs for _ ∈ eachindex(sizevec)))
+  times = Array{Float64}(undef, 5, length(sizes), length(libs))
+  gflop = similar(times);
 
-    p = Progress(length(sizes))
-    gflop_report_type = NamedTuple{(:MedianGFLOPS, :MaxGFLOPS), Tuple{Float64, Float64}}
-    last_perfs = Vector{Tuple{Symbol,Union{gflop_report_type,NTuple{3,Int}}}}(undef, length(libs)+1)
-    for _j in 0:length(sizevec)-1
-        if iseven(_j)
-            j = (_j >> 1) + 1
-        else
-            j = length(sizevec) - (_j >> 1)
-        end
-        s = sizevec[j]
-        M, K, N = matmul_sizes(s)
-        A,  off = alloc_mat(M, K, memory,   0, A_transform)
-        B,  off = alloc_mat(K, N, memory, off, B_transform)
-        rand!(A); rand!(B);
-        C0, off = alloc_mat(M, N, memory, off)
-        C1, off = alloc_mat(M, N, memory, off)
-        last_perfs[1] = (:Size, (M,K,N) .% Int)
-        for i ∈ eachindex(funcs)
-            C, ref = i == 1 ? (C0, nothing) : (fill!(C1,junk(T)), C0)
-            lib = library[i]
-            comment = "lib=$(lib), M=$(M), K=$(K), N=$(N)"
-            t = benchmark_fun!(
-                funcs[i],
-                C,
-                A,
-                B,
-                sleep_time,
-                force_belapsed,
-                ref,
-                comment,
-            )
-            gffactor = 2e-9M*K*N
-            @inbounds for k ∈ 1:4
-                times[k,j,i] = t[k]
-                gflop[k,j,i] = gffactor / t[k]
-            end
-            times[5,j,i] = inv(t[5])
-            gflop[5,j,i] = gffactor * t[5]
-            gflops = round.((gflop[1,j,i], gflop[2,j,i]), sigdigits = 4)
-            gflops = (
-                MedianGFLOPS = round(gflop[2,j,i], sigdigits = 4),
-                MaxGFLOPS = round(gflop[1,j,i], sigdigits = 4)
-            )
-            last_perfs[i+1] = (libs[i], gflops)
-        end
-        ProgressMeter.next!(p; showvalues = last_perfs)
-        force_belapsed = false
+  discard_first = true # force when compiling
+
+  p = Progress(length(sizes))
+  gflop_report_type = NamedTuple{(:MedianGFLOPS, :MaxGFLOPS), Tuple{Float64, Float64}}
+  last_perfs = Vector{Tuple{Symbol,Union{gflop_report_type,NTuple{2,Int}}}}(undef, length(libs)+1)
+  for _j in 0:length(sizevec)-1
+    if iseven(_j)
+      j = (_j >> 1) + 1
+    else
+      j = length(sizevec) - (_j >> 1)
     end
-    BenchmarkResult{T}(libs, sizes, gflop, times, threaded)
+    N = sizevec[j]
+    M = N
+    A,  off = alloc_mat(M, N, memory,   0, A_transform)
+    rand!(A); #rand!(B);
+    @inbounds for n ∈ 1:N, m ∈ 1:M
+      A[m,n] = (A[m,n] + (m == n))
+    end
+    B, off = alloc_mat(M, N, memory, off, B_transform)
+    last_perfs[1] = (:Size, (M,N) .% Int)
+    for i ∈ eachindex(funcs)
+      lib = library[i]
+      comment = "lib=$(lib), M=$(M), N=$(N)"
+      t = benchmark_fun!(
+        funcs[i],
+        B,
+        A,
+        nothing,
+        sleep_time,
+        discard_first,
+        nothing,
+        comment,
+      )
+      gffactor = luflop(M,N)
+      @inbounds for k ∈ 1:4
+        times[k,j,i] = t[k]
+        gflop[k,j,i] = gffactor / t[k]
+      end
+      times[5,j,i] = inv(t[5])
+      gflop[5,j,i] = gffactor * t[5]
+      gflops = round.((gflop[1,j,i], gflop[2,j,i]), sigdigits = 4)
+      gflops = (
+        MedianGFLOPS = round(gflop[2,j,i], sigdigits = 4),
+        MaxGFLOPS = round(gflop[1,j,i], sigdigits = 4)
+      )
+      last_perfs[i+1] = (libs[i], gflops)
+    end
+    ProgressMeter.next!(p; showvalues = last_perfs)
+    if isodd(_j)
+      discard_first = false
+    end
+  end
+  BenchmarkTools.DEFAULT_PARAMETERS.seconds = benchtime # restore previous state
+  BenchmarkResult{T}(libs, sizes, gflop, times, threaded)
 end

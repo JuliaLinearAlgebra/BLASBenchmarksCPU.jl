@@ -3,7 +3,7 @@
 ####################################### Colors #####################################################
 ####################################################################################################
 
-const LIBRARIES = [:Octavian, :MKL, :OpenBLAS, :blis, :Tullio, :Gaius, :LoopVectorization, :Generic];
+const LIBRARIES = [:Octavian, :MKL, :OpenBLAS, :blis, :Tullio, :Gaius, :LoopVectorization, :Generic, :RecursiveFactorization, :TriangularSolve];
 """
 Defines the mapping between libraries and colors
 """# #0071c5 == Intel Blue
@@ -17,7 +17,7 @@ for (alias,ref) ∈ [(:BLIS,:blis),(:generic,:Generic),(:GENERIC,:Generic)]
     COLOR_MAP[alias] = COLOR_MAP[ref]
 end
 
-const JULIA_LIBS = Set(["Octavian", "Tullio", "Gaius", "Generic", "GENERIC", "generic"])
+const JULIA_LIBS = Set(["Octavian", "Tullio", "Gaius", "Generic", "GENERIC", "generic", "RecursiveFactorization", "TriangularSolve"])
 isjulialib(x) = x ∈ JULIA_LIBS
 
 
@@ -73,7 +73,7 @@ end
 """
     plot(br::BenchmarkResult;
          desc = "",
-         logscale = true,
+         logscale = false,
          width = 1200,
          height = 600,
          measure = :minimum,
@@ -96,7 +96,7 @@ roundint(x) = round(Int,x)
 function _plot(
     br::BenchmarkResult{T};
     desc::AbstractString = "",
-    logscale::Bool = true,
+    logscale::Bool = false,
     width = 12inch,
     height = 8inch,
     measure = :minimum,
@@ -122,8 +122,10 @@ function _plot(
         push!(plt, l)
     end
     minsz, maxsz = extrema(br.sizes)
-    l10min = log10(minsz); l10max = log10(maxsz);
-    push!(plt, Stat.xticks(ticks = range(l10min, l10max, length=round(Int,(1+2*(l10max-l10min))))))
+    if logscale
+      l10min = log10(minsz); l10max = log10(maxsz);
+      push!(plt, Stat.xticks(ticks = range(l10min, l10max, length=round(Int,(1+2*(l10max-l10min))))))
+    end
     displayplot && display(plt)
     mkpath(plot_directory)
     _filenames = String[]

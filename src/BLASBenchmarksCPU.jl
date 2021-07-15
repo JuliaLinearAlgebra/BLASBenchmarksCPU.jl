@@ -8,6 +8,7 @@ using Tullio, Octavian, Gaius
 # utils: LoopVectorization for Tullio.jl, VectorizationBase for info
 using LoopVectorization, VectorizationBase
 using VectorizationBase: num_cores, align
+using RecursiveFactorization
 
 using Random
 
