@@ -58,7 +58,7 @@ const libBLIS = blis_jll.blis # more convenient name
 function blis_set_num_threads(N::Integer)
     ccall((:bli_thread_set_num_threads,libBLIS), Cvoid, (Int32,), N)
 end
-function blis_get_num_threads(N::Integer)
+function blis_get_num_threads()
     ccall((:bli_thread_get_num_threads,libBLIS), Int32, ())
 end
 
