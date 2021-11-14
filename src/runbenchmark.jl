@@ -201,12 +201,12 @@ function all_libs()
     libs = Symbol[
         :BLIS,
         :Gaius,
-        :MKL,
         :Octavian,
         :OpenBLAS,
         :Tullio,
         :LoopVectorization
     ]
+    Sys.ARCH === :x86_64 && push!(libs, :MKL)
     return libs
 end
 
@@ -276,11 +276,11 @@ function runbench(
   sleep_time = 0.0
 ) where {T}
   if threaded
-    mkl_set_num_threads(num_cores())
+    Sys.ARCH === :x86_64 && mkl_set_num_threads(num_cores())
     openblas_set_num_threads(num_cores())
     blis_set_num_threads(num_cores())
   else
-    mkl_set_num_threads(1)
+    Sys.ARCH === :x86_64 && mkl_set_num_threads(1)
     openblas_set_num_threads(1)
     blis_set_num_threads(1)
   end
@@ -355,7 +355,11 @@ function runbench(
   BenchmarkResult{T}(libs, sizes, gflop, times, threaded)
 end
 
+@static if Sys.ARCH === :x86_64
 const LUFUNCS = Dict(:RecursiveFactorization => RecursiveFactorization.lu!, :MKL => lumkl!, :OpenBLAS => luopenblas!)
+else
+const LUFUNCS = Dict(:RecursiveFactorization => RecursiveFactorization.lu!, :OpenBLAS => luopenblas)
+end
 struct LUWrapperFunc{F}; f::F; end
 (lu::LUWrapperFunc)(A,B,C) = lu.f(copyto!(A,B))
 function runlubench(
