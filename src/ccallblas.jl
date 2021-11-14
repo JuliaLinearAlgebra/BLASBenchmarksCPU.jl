@@ -54,6 +54,7 @@ for (name,BlasInt,suff) ∈ [
   ("openblas", :Int64, "_64_"),
   ("blis", :Int64, "_64_")
 ]
+  (Sys.ARCH !== :x86_64 && name === "mkl") && continue
   uname = uppercase(name)
   lib = Symbol("lib", uname)
   fgemm = Symbol("gemm", name, '!')
@@ -151,6 +152,7 @@ for (name,BlasInt,suff) ∈ [
 
   end
 end
+@static if Sys.ARCH === :x86_64
 let BlasInt = :Int32
   for (T,prefix) ∈ [(:Float32,'s'),(:Float64,'d')]
     f = Symbol(prefix, "gemm_direct")
@@ -175,6 +177,7 @@ let BlasInt = :Int32
       end
     end
   end
+end
 end
 
 

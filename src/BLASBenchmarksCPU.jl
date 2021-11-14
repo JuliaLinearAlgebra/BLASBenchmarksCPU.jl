@@ -1,7 +1,10 @@
 module BLASBenchmarksCPU
 
 # BLAS libs (& Libdl)
-using MKL_jll, OpenBLAS_jll, blis_jll#, Libdl
+@static if Sys.ARCH === :x86_64
+using MKL_jll
+end
+using OpenBLAS_jll, blis_jll#, Libdl
 # Julia BLAS
 using Tullio, Octavian, Gaius
 
@@ -45,9 +48,11 @@ export gemmmkl!, gemmmkl_direct!
 export mkl_set_num_threads
 
 # set threads
+@static if Sys.ARCH === :x86_64
 const libMKL = MKL_jll.libmkl_rt # more convenient name
 function mkl_set_num_threads(N::Integer)
     ccall((:MKL_Set_Num_Threads,libMKL), Cvoid, (Int32,), N % Int32)
+end
 end
 const libOPENBLAS = OpenBLAS_jll.libopenblas # more convenient name
 function openblas_set_num_threads(N::Integer)
@@ -69,7 +74,7 @@ include("runbenchmark.jl")
 include("plotting.jl")
 
 function __init__()
-    mkl_set_num_threads(num_cores())
+    Sys.ARCH === :x86_64 && mkl_set_num_threads(num_cores())
     openblas_set_num_threads(num_cores())
     blis_set_num_threads(num_cores())
 end
