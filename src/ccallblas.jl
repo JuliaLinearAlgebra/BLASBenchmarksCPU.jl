@@ -50,7 +50,7 @@ end
 _apply_inverse_ipiv_cols!(A::LU, B::StridedVecOrMat) = _ipiv_cols!(A, length(A.ipiv) : -1 : 1, B)
 
 for (name,BlasInt,suff) ∈ [
-  ("mkl", :Int32, ""),
+  ("mkl", :Int64, ""),
   ("openblas", :Int64, "_64_"),
   ("blis", :Int64, "_64_")
 ]
@@ -153,7 +153,7 @@ for (name,BlasInt,suff) ∈ [
   end
 end
 @static if Sys.ARCH === :x86_64
-let BlasInt = :Int32
+let BlasInt = :Int64
   for (T,prefix) ∈ [(:Float32,'s'),(:Float64,'d')]
     f = Symbol(prefix, "gemm_direct")
     @eval begin
