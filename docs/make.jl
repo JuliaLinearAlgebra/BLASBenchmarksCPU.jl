@@ -19,7 +19,6 @@ makedocs(;
         "Public API" => "public-api.md",
         "Internals (Private)" => "internals.md",
     ],
-    strict=true,
 )
 
 deploydocs(;
