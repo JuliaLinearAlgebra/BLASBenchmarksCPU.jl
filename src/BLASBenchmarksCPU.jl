@@ -11,6 +11,7 @@ using Tullio, Octavian, Gaius
 # utils: LoopVectorization for Tullio.jl, VectorizationBase for info
 using LoopVectorization, VectorizationBase
 using VectorizationBase: num_cores, align
+using Static: StaticInt
 using RecursiveFactorization
 
 using Random
@@ -50,20 +51,20 @@ export mkl_set_num_threads
 # set threads
 @static if Sys.ARCH === :x86_64
 const libMKL = MKL_jll.libmkl_rt # more convenient name
-function mkl_set_num_threads(N::Integer)
+function mkl_set_num_threads(N::Union{Integer, StaticInt})
     ccall((:MKL_Set_Num_Threads,libMKL), Cvoid, (Int32,), N % Int32)
 end
 end
 const libOPENBLAS = OpenBLAS_jll.libopenblas # more convenient name
-function openblas_set_num_threads(N::Integer)
+function openblas_set_num_threads(N::Union{Integer, StaticInt})
     ccall((:openblas_set_num_threads64_,libOPENBLAS), Cvoid, (Int64,), N)
 end
 
 const libBLIS = blis_jll.blis # more convenient name
-function blis_set_num_threads(N::Integer)
+function blis_set_num_threads(N::Union{Integer, StaticInt})
     ccall((:bli_thread_set_num_threads,libBLIS), Cvoid, (Int32,), N)
 end
-function blis_get_num_threads(N::Integer)
+function blis_get_num_threads(::Union{Integer, StaticInt})
     ccall((:bli_thread_get_num_threads,libBLIS), Int32, ())
 end
 
